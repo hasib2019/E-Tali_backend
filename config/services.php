@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'google' => [
+        // OAuth client IDs — a Google id_token's `aud` must match one of these.
+        'web_client_id' => env('GOOGLE_WEB_CLIENT_ID'),
+        'web_client_secret' => env('GOOGLE_WEB_CLIENT_SECRET'),
+        'android_client_id' => env('GOOGLE_ANDROID_CLIENT_ID'),
+        'ios_client_id' => env('GOOGLE_IOS_CLIENT_ID'),
+        // Drive backup destination folder (created in the user's own Drive).
+        'drive_folder_name' => env('GOOGLE_DRIVE_FOLDER_NAME', 'Tali Khata Backups'),
+    ],
+
 ];

@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mobile App Deep Link
+    |--------------------------------------------------------------------------
+    |
+    | Custom URL scheme used to reopen the mobile app after web flows such as
+    | email verification. Matches the Expo app's `scheme`.
+    |
+    */
+
+    'frontend_url' => env('APP_FRONTEND_URL', 'talikhata://'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
