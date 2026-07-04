@@ -26,6 +26,7 @@ class EmailVerificationController extends ApiController
 
         if (! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
+            $user->grantFreeTrialIfEligible(); // start the free trial right away
         }
 
         return view('email-verified', [

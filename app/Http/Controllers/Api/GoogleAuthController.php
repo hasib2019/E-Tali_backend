@@ -57,6 +57,7 @@ class GoogleAuthController extends AuthController
         }
 
         $user = $this->findOrCreateGoogleUser($payload);
+        $user->grantFreeTrialIfEligible(); // Google email is already verified → start trial
 
         if (! $user->is_active) {
             return response()->json([

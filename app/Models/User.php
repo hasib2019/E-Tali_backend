@@ -93,4 +93,41 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->subscription_expires_at !== null
             && $this->subscription_expires_at->isFuture();
     }
+
+    /**
+     * Put a freshly-verified user on the Free Trial package so they can start
+     * using the app immediately. No-op if they already have (or had) any
+     * subscription — so it never overwrites a paid plan or grants twice.
+     */
+    public function grantFreeTrialIfEligible(): void
+    {
+        if ($this->subscription_expires_at !== null || $this->subscriptions()->exists()) {
+            return;
+        }
+
+        $package = Package::where('name', 'Free Trial')->where('is_active', true)->first();
+        if (! $package) {
+            return;
+        }
+
+        $startsAt = now();
+        $expiresAt = now()->addDays($package->duration_days);
+
+        $this->subscriptions()->create([
+            'package_id' => $package->id,
+            'starts_at' => $startsAt,
+            'expires_at' => $expiresAt,
+            'amount' => 0,
+            'status' => 'active',
+            'note' => 'Auto free trial on email verification',
+        ]);
+
+        $this->forceFill([
+            'package_id' => $package->id,
+            'subscription_status' => 'active',
+            'subscribed_at' => $startsAt,
+            'subscription_expires_at' => $expiresAt,
+            'is_paid' => false,
+        ])->save();
+    }
 }

@@ -25,7 +25,14 @@ class AuthController extends ApiController
 
         $user = User::create($data);
         $user->refresh(); // hydrate DB defaults (is_active=true, provider='email', ...)
-        $user->sendEmailVerificationNotification();
+
+        // Don't let a mail-server hiccup fail the registration — the user is
+        // created and can trigger "resend" from the verify screen.
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $token = $user->createToken('mobile')->plainTextToken;
 
