@@ -95,14 +95,14 @@ class VoucherController extends ApiController
             return $voucher;
         });
 
-        return $this->ok($this->present($voucher->load('items'), $request), 'Voucher saved.', 201);
+        return $this->ok($this->present($voucher->load('items'), $request, withMedia: true), 'Voucher saved.', 201);
     }
 
     public function show(Request $request, Voucher $voucher): JsonResponse
     {
         $this->ensureOwnsVoucher($voucher);
 
-        return $this->ok($this->present($voucher->load('items'), $request));
+        return $this->ok($this->present($voucher->load('items'), $request, withMedia: true));
     }
 
     public function destroy(Voucher $voucher): JsonResponse
@@ -138,14 +138,84 @@ class VoucherController extends ApiController
         return $path;
     }
 
-    /** Voucher as array + absolute image/signature URLs (matching the request host). */
-    private function present(Voucher $voucher, Request $request): array
+    /**
+     * Voucher as array with image/signature.
+     * For a single voucher (withMedia) we embed the files as base64 data URIs so
+     * they always render regardless of storage:link / host — and stay embedded
+     * in the generated PDF. For lists we return light URLs (not displayed there).
+     */
+    private function present(Voucher $voucher, Request $request, bool $withMedia = false): array
     {
-        $base = rtrim($request->getSchemeAndHttpHost(), '/');
         $arr = $voucher->toArray();
-        $arr['image_url'] = $voucher->image_path ? "{$base}/storage/{$voucher->image_path}" : null;
-        $arr['signature_url'] = $voucher->signature_path ? "{$base}/storage/{$voucher->signature_path}" : null;
+
+        if ($withMedia) {
+            $arr['image_url'] = $this->mediaDataUri($voucher->image_path);
+            $arr['signature_url'] = $this->mediaDataUri($voucher->signature_path);
+        } else {
+            $base = rtrim($request->getSchemeAndHttpHost(), '/');
+            $arr['image_url'] = $voucher->image_path ? "{$base}/storage/{$voucher->image_path}" : null;
+            $arr['signature_url'] = $voucher->signature_path ? "{$base}/storage/{$voucher->signature_path}" : null;
+        }
 
         return $arr;
+    }
+
+    /**
+     * Read a stored image, downscale + compress it (so it stays light enough to
+     * render in-app and in the generated PDF), and return it as a base64 data URI.
+     */
+    private function mediaDataUri(?string $path, int $maxWidth = 1000): ?string
+    {
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        $binary = Storage::disk('public')->get($path);
+
+        $jpeg = $this->downscaleToJpeg($binary, $maxWidth);
+        if ($jpeg !== null) {
+            return 'data:image/jpeg;base64,'.base64_encode($jpeg);
+        }
+
+        // GD unavailable / unreadable — fall back to the original bytes.
+        $mime = Storage::disk('public')->mimeType($path) ?: 'image/png';
+
+        return "data:{$mime};base64,".base64_encode($binary);
+    }
+
+    /**
+     * Downscale image bytes to a max width and flatten onto white (so transparent
+     * signatures stay visible), returning JPEG bytes. Null if GD can't handle it.
+     */
+    private function downscaleToJpeg(string $binary, int $maxWidth): ?string
+    {
+        if (! function_exists('imagecreatefromstring')) {
+            return null;
+        }
+
+        $src = @imagecreatefromstring($binary);
+        if ($src === false) {
+            return null;
+        }
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $nw = $w > $maxWidth ? $maxWidth : $w;
+        $nh = (int) round($h * ($nw / $w));
+
+        $dst = imagecreatetruecolor($nw, $nh);
+        imagealphablending($dst, true);
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefilledrectangle($dst, 0, 0, $nw, $nh, $white);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+
+        ob_start();
+        imagejpeg($dst, null, 72);
+        $out = ob_get_clean();
+
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $out !== '' ? $out : null;
     }
 }

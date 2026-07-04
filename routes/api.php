@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/backups/run', [DriveBackupController::class, 'backupNow']);
         Route::get('/backups/history', [DriveBackupController::class, 'history']);
+        Route::get('/backups/export', [DriveBackupController::class, 'export']);
         Route::put('/backups/schedule', [DriveBackupController::class, 'schedule']);
         Route::post('/backups/restore', [DriveBackupController::class, 'restore']);
     });

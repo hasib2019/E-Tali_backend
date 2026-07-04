@@ -84,6 +84,15 @@ class DriveBackupController extends ApiController
     }
 
     /**
+     * Return the user's full ledger as a JSON export, for the app to save as a
+     * local backup file on the device.
+     */
+    public function export(Request $request, BackupService $backup): JsonResponse
+    {
+        return $this->ok($backup->export($request->user()));
+    }
+
+    /**
      * List the backup files currently in the user's Drive folder.
      */
     public function driveFiles(Request $request, GoogleDriveService $drive): JsonResponse
