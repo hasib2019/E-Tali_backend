@@ -22,7 +22,7 @@ class DriveBackupController extends ApiController
         $data = $request->validate([
             'code' => ['required', 'string'],
             'code_verifier' => ['nullable', 'string'],
-            'redirect_uri' => ['required', 'string'],
+            'redirect_uri' => ['nullable', 'string'], // native serverAuthCode has none
             'platform' => ['required', 'in:web,android,ios'],
         ]);
 
@@ -31,7 +31,7 @@ class DriveBackupController extends ApiController
                 $request->user(),
                 $data['code'],
                 $data['code_verifier'] ?? null,
-                $data['redirect_uri'],
+                $data['redirect_uri'] ?? '',
                 $data['platform'],
             );
         } catch (Throwable $e) {

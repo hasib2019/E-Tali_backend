@@ -20,14 +20,16 @@ class GoogleDriveService
 
     private const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
 
-    /** [clientId, clientSecret|null] for the platform that linked Drive. */
-    private function clientFor(?string $platform): array
+    /** [clientId, clientSecret] for the Web OAuth client (used for all Drive token calls). */
+    private function webClient(): array
     {
-        return match ($platform) {
-            'android' => [config('services.google.android_client_id'), null],
-            'ios' => [config('services.google.ios_client_id'), null],
-            default => [config('services.google.web_client_id'), config('services.google.web_client_secret')],
-        };
+        $id = config('services.google.web_client_id');
+        $secret = config('services.google.web_client_secret');
+        if (! $id || ! $secret) {
+            throw new RuntimeException('Google Drive is not configured on the server.');
+        }
+
+        return [$id, $secret];
     }
 
     /**
@@ -36,18 +38,18 @@ class GoogleDriveService
      */
     public function exchangeCode(User $user, string $code, ?string $codeVerifier, string $redirectUri, string $platform): GoogleDriveCredential
     {
-        [$clientId, $secret] = $this->clientFor($platform);
-        if (! $clientId) {
-            throw new RuntimeException('Google Drive is not configured on the server.');
-        }
+        // Both the web PKCE code and the native serverAuthCode are issued for the
+        // Web client (the app configures it as serverClientId), so the exchange
+        // always uses the Web client + secret.
+        [$clientId, $secret] = $this->webClient();
 
         $params = array_filter([
             'code' => $code,
             'client_id' => $clientId,
             'client_secret' => $secret,
-            'redirect_uri' => $redirectUri,
+            'redirect_uri' => $redirectUri, // '' for native serverAuthCode → omitted
             'grant_type' => 'authorization_code',
-            'code_verifier' => $codeVerifier,
+            'code_verifier' => $codeVerifier, // null for native → omitted
         ], fn ($v) => $v !== null && $v !== '');
 
         $resp = Http::asForm()->post(self::TOKEN_URL, $params);
@@ -97,14 +99,14 @@ class GoogleDriveService
             return $cred->access_token;
         }
 
-        [$clientId, $secret] = $this->clientFor($cred->platform);
+        [$clientId, $secret] = $this->webClient();
 
-        $params = array_filter([
+        $params = [
             'client_id' => $clientId,
             'client_secret' => $secret,
             'refresh_token' => $cred->refresh_token,
             'grant_type' => 'refresh_token',
-        ], fn ($v) => $v !== null && $v !== '');
+        ];
 
         $resp = Http::asForm()->post(self::TOKEN_URL, $params);
         if ($resp->failed()) {
