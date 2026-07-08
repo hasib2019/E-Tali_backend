@@ -46,6 +46,22 @@ class TransactionController extends ApiController
         return $this->ok($transaction, 'Transaction saved.', 201);
     }
 
+    public function update(Request $request, Transaction $transaction): JsonResponse
+    {
+        $this->ensureOwnsTransaction($transaction);
+
+        $data = $request->validate([
+            'type' => ['sometimes', 'in:debit,credit'],
+            'amount' => ['sometimes', 'numeric', 'min:0.01'],
+            'note' => ['nullable', 'string'],
+            'txn_date' => ['nullable', 'date'],
+        ]);
+
+        $transaction->update($data);
+
+        return $this->ok($transaction->fresh(), 'Transaction updated.');
+    }
+
     public function destroy(Transaction $transaction): JsonResponse
     {
         $this->ensureOwnsTransaction($transaction);

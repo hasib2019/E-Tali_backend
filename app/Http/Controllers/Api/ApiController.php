@@ -59,4 +59,13 @@ abstract class ApiController extends Controller
     {
         abort_unless($voucher->business->user_id === request()->user()->id, 403, 'This voucher does not belong to you.');
     }
+
+    /**
+     * Ownership guard for any model that belongs to a business
+     * (cash categories, budgets, savings goals, reminders, batches…).
+     */
+    protected function ensureOwnsChild($model): void
+    {
+        abort_unless($model->business->user_id === request()->user()->id, 403, 'This resource does not belong to you.');
+    }
 }

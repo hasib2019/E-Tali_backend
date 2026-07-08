@@ -105,6 +105,67 @@ class VoucherController extends ApiController
         return $this->ok($this->present($voucher->load('items'), $request, withMedia: true));
     }
 
+    /** Re-edit a bill: recompute totals, replace line items, optionally swap media. */
+    public function update(Request $request, Voucher $voucher): JsonResponse
+    {
+        $this->ensureOwnsVoucher($voucher);
+
+        $data = $request->validate([
+            'voucher_date' => ['nullable', 'date'],
+            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'note' => ['nullable', 'string'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'items.*.name' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'image' => ['nullable', 'string'],
+            'signature' => ['nullable', 'string'],
+        ]);
+
+        $total = 0.0;
+        foreach ($data['items'] as $it) {
+            $total += round((float) $it['quantity'] * (float) $it['unit_price'], 2);
+        }
+        $total = round($total, 2);
+        $paid = min(max((float) ($data['paid_amount'] ?? 0), 0), $total);
+        $due = round($total - $paid, 2);
+
+        DB::transaction(function () use ($voucher, $data, $total, $paid, $due) {
+            $voucher->update([
+                'voucher_date' => $data['voucher_date'] ?? $voucher->voucher_date,
+                'total_amount' => $total,
+                'paid_amount' => $paid,
+                'due_amount' => $due,
+                'note' => $data['note'] ?? null,
+            ]);
+
+            $voucher->items()->delete();
+            foreach ($data['items'] as $it) {
+                $voucher->items()->create([
+                    'product_id' => $it['product_id'] ?? null,
+                    'name' => $it['name'],
+                    'quantity' => $it['quantity'],
+                    'unit_price' => $it['unit_price'],
+                    'line_total' => round((float) $it['quantity'] * (float) $it['unit_price'], 2),
+                ]);
+            }
+
+            $updates = [];
+            if (! empty($data['image'])) {
+                $updates['image_path'] = $this->storeBase64($data['image'], $voucher->id, 'image');
+            }
+            if (! empty($data['signature'])) {
+                $updates['signature_path'] = $this->storeBase64($data['signature'], $voucher->id, 'signature');
+            }
+            if ($updates) {
+                $voucher->update($updates);
+            }
+        });
+
+        return $this->ok($this->present($voucher->fresh()->load('items'), $request, withMedia: true), 'Voucher updated.');
+    }
+
     public function destroy(Voucher $voucher): JsonResponse
     {
         $this->ensureOwnsVoucher($voucher);

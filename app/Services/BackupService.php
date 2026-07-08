@@ -4,19 +4,26 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\User;
+use App\Support\CategoryRegistry;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class BackupService
 {
-    /** Current backup schema version. */
-    public const VERSION = 1;
+    /**
+     * Current backup schema version.
+     * v2 adds: business category/meta; party monthly_fee/batch_id/roll;
+     * cash_categories, budgets, savings_goals, reminders, batches,
+     * fee_payments and attendances. v1 backups still restore fine (new
+     * fields default), so the reader stays backward compatible.
+     */
+    public const VERSION = 2;
 
     /**
      * Serialize a user's entire ledger (all businesses and their nested data)
      * into a portable, self-contained array ready to be JSON-encoded.
      *
-     * Note: attached files (voucher images/signatures, transaction attachments)
+     * Note: attached files (voucher images/signatures, cashbook attachments)
      * are referenced by their stored path but the binary files are not included.
      */
     public function export(User $user): array
@@ -26,14 +33,23 @@ class BackupService
             'businesses.cashbookEntries',
             'businesses.parties.transactions',
             'businesses.parties.vouchers.items',
+            'businesses.cashCategories',
+            'businesses.budgets',
+            'businesses.savingsGoals',
+            'businesses.reminders',
+            'businesses.batches',
+            'businesses.feePayments',
+            'businesses.attendances',
         ]);
 
         $businesses = $user->businesses->map(fn (Business $b) => [
             'name' => $b->name,
             'type' => $b->type,
+            'category' => $b->category,
             'phone' => $b->phone,
             'address' => $b->address,
             'currency' => $b->currency,
+            'meta' => $b->meta,
             'products' => $b->products->map(fn ($p) => [
                 'id' => $p->id, // original id, used to relink voucher items on restore
                 'name' => $p->name,
@@ -41,12 +57,21 @@ class BackupService
                 'sale_price' => $p->sale_price,
                 'purchase_price' => $p->purchase_price,
             ])->values(),
+            'batches' => $b->batches->map(fn ($bt) => [
+                'id' => $bt->id, // original id, used to relink parties on restore
+                'name' => $bt->name,
+                'schedule' => $bt->schedule,
+            ])->values(),
             'parties' => $b->parties->map(fn ($party) => [
+                'id' => $party->id, // original id, used to relink fees/attendance on restore
                 'name' => $party->name,
                 'phone' => $party->phone,
                 'type' => $party->type,
                 'address' => $party->address,
                 'opening_balance' => $party->opening_balance,
+                'monthly_fee' => $party->monthly_fee,
+                'batch_id' => $party->batch_id, // original batch id
+                'roll' => $party->roll,
                 'transactions' => $party->transactions->map(fn ($t) => [
                     'type' => $t->type,
                     'amount' => $t->amount,
@@ -70,11 +95,48 @@ class BackupService
                 ])->values(),
             ])->values(),
             'cashbook_entries' => $b->cashbookEntries->map(fn ($c) => [
+                'id' => $c->id, // original id, used to relink fee payments on restore
                 'type' => $c->type,
                 'amount' => $c->amount,
                 'category' => $c->category,
                 'note' => $c->note,
                 'entry_date' => $c->entry_date?->toDateString(),
+            ])->values(),
+            'cash_categories' => $b->cashCategories->map(fn ($cc) => [
+                'type' => $cc->type,
+                'name' => $cc->name,
+                'icon' => $cc->icon,
+                'sort' => $cc->sort,
+            ])->values(),
+            'budgets' => $b->budgets->map(fn ($bd) => [
+                'period' => $bd->period,
+                'amount' => $bd->amount,
+            ])->values(),
+            'savings_goals' => $b->savingsGoals->map(fn ($sg) => [
+                'name' => $sg->name,
+                'target_amount' => $sg->target_amount,
+                'saved_amount' => $sg->saved_amount,
+                'target_date' => $sg->target_date?->toDateString(),
+                'is_done' => $sg->is_done,
+            ])->values(),
+            'reminders' => $b->reminders->map(fn ($r) => [
+                'title' => $r->title,
+                'amount' => $r->amount,
+                'due_date' => $r->due_date?->toDateString(),
+                'is_done' => $r->is_done,
+                'note' => $r->note,
+            ])->values(),
+            'fee_payments' => $b->feePayments->map(fn ($fp) => [
+                'party_id' => $fp->party_id,                 // original party id
+                'cashbook_entry_id' => $fp->cashbook_entry_id, // original cashbook id
+                'period' => $fp->period,
+                'amount' => $fp->amount,
+                'paid_at' => $fp->paid_at?->toDateString(),
+            ])->values(),
+            'attendances' => $b->attendances->map(fn ($a) => [
+                'party_id' => $a->party_id,                  // original party id
+                'date' => $a->date?->toDateString(),
+                'status' => $a->status,
             ])->values(),
         ])->values();
 
@@ -94,8 +156,10 @@ class BackupService
      * Restore a backup into the authenticated user's account.
      *
      * Everything is (re)created under $user->id — ids in the payload are never
-     * trusted. `replace` (default) wipes the user's existing businesses first;
-     * `merge` adds alongside them. Returns a count summary.
+     * trusted; they are only used to relink nested records (voucher items →
+     * products, parties → batches, fees/attendance → parties/cashbook).
+     * `replace` (default) wipes the user's existing businesses first (DB
+     * cascade clears all children); `merge` adds alongside them.
      */
     public function import(User $user, array $data, string $mode = 'replace'): array
     {
@@ -104,11 +168,16 @@ class BackupService
             throw new RuntimeException('Unsupported backup version.');
         }
 
-        $counts = ['businesses' => 0, 'products' => 0, 'parties' => 0, 'transactions' => 0, 'vouchers' => 0, 'voucher_items' => 0, 'cashbook_entries' => 0];
+        $counts = [
+            'businesses' => 0, 'products' => 0, 'parties' => 0, 'transactions' => 0,
+            'vouchers' => 0, 'voucher_items' => 0, 'cashbook_entries' => 0,
+            'cash_categories' => 0, 'budgets' => 0, 'savings_goals' => 0,
+            'reminders' => 0, 'batches' => 0, 'fee_payments' => 0, 'attendances' => 0,
+        ];
 
         DB::transaction(function () use ($user, $data, $mode, &$counts) {
             if ($mode === 'replace') {
-                // Cascades to parties/products/cashbook/transactions/vouchers/items.
+                // DB-level ON DELETE CASCADE clears every child table.
                 $user->businesses()->delete();
             }
 
@@ -116,9 +185,11 @@ class BackupService
                 $business = $user->businesses()->create([
                     'name' => $b['name'] ?? 'Untitled',
                     'type' => $b['type'] ?? null,
+                    'category' => CategoryRegistry::normalize($b['category'] ?? null),
                     'phone' => $b['phone'] ?? null,
                     'address' => $b['address'] ?? null,
                     'currency' => $b['currency'] ?? 'BDT',
+                    'meta' => $b['meta'] ?? null,
                 ]);
                 $counts['businesses']++;
 
@@ -137,6 +208,21 @@ class BackupService
                     $counts['products']++;
                 }
 
+                // Batches before parties — parties reference a batch.
+                $batchMap = [];
+                foreach ($b['batches'] ?? [] as $bt) {
+                    $batch = $business->batches()->create([
+                        'name' => $bt['name'] ?? 'Batch',
+                        'schedule' => $bt['schedule'] ?? null,
+                    ]);
+                    if (isset($bt['id'])) {
+                        $batchMap[$bt['id']] = $batch->id;
+                    }
+                    $counts['batches']++;
+                }
+
+                // Parties — map old id -> new id for fees/attendance relink.
+                $partyMap = [];
                 foreach ($b['parties'] ?? [] as $partyData) {
                     $party = $business->parties()->create([
                         'name' => $partyData['name'] ?? 'Party',
@@ -144,7 +230,13 @@ class BackupService
                         'type' => $partyData['type'] ?? 'customer',
                         'address' => $partyData['address'] ?? null,
                         'opening_balance' => $partyData['opening_balance'] ?? 0,
+                        'monthly_fee' => $partyData['monthly_fee'] ?? null,
+                        'batch_id' => isset($partyData['batch_id']) ? ($batchMap[$partyData['batch_id']] ?? null) : null,
+                        'roll' => $partyData['roll'] ?? null,
                     ]);
+                    if (isset($partyData['id'])) {
+                        $partyMap[$partyData['id']] = $party->id;
+                    }
                     $counts['parties']++;
 
                     foreach ($partyData['transactions'] ?? [] as $t) {
@@ -185,8 +277,10 @@ class BackupService
                     }
                 }
 
+                // Cashbook — map old id -> new id for fee payment relink.
+                $cashbookMap = [];
                 foreach ($b['cashbook_entries'] ?? [] as $c) {
-                    $business->cashbookEntries()->create([
+                    $entry = $business->cashbookEntries()->create([
                         'user_id' => $user->id,
                         'type' => $c['type'] ?? 'cash_in',
                         'amount' => $c['amount'] ?? 0,
@@ -194,7 +288,89 @@ class BackupService
                         'note' => $c['note'] ?? null,
                         'entry_date' => $c['entry_date'] ?? now()->toDateString(),
                     ]);
+                    if (isset($c['id'])) {
+                        $cashbookMap[$c['id']] = $entry->id;
+                    }
                     $counts['cashbook_entries']++;
+                }
+
+                // Personal-finance buckets (no cross-references).
+                foreach ($b['cash_categories'] ?? [] as $cc) {
+                    $business->cashCategories()->create([
+                        'type' => $cc['type'] ?? 'out',
+                        'name' => $cc['name'] ?? 'Other',
+                        'icon' => $cc['icon'] ?? null,
+                        'sort' => $cc['sort'] ?? 0,
+                    ]);
+                    $counts['cash_categories']++;
+                }
+
+                foreach ($b['budgets'] ?? [] as $bd) {
+                    if (empty($bd['period'])) {
+                        continue;
+                    }
+                    $business->budgets()->create([
+                        'period' => $bd['period'],
+                        'amount' => $bd['amount'] ?? 0,
+                    ]);
+                    $counts['budgets']++;
+                }
+
+                foreach ($b['savings_goals'] ?? [] as $sg) {
+                    $business->savingsGoals()->create([
+                        'name' => $sg['name'] ?? 'Goal',
+                        'target_amount' => $sg['target_amount'] ?? 0,
+                        'saved_amount' => $sg['saved_amount'] ?? 0,
+                        'target_date' => $sg['target_date'] ?? null,
+                        'is_done' => $sg['is_done'] ?? false,
+                    ]);
+                    $counts['savings_goals']++;
+                }
+
+                foreach ($b['reminders'] ?? [] as $r) {
+                    if (empty($r['due_date'])) {
+                        continue;
+                    }
+                    $business->reminders()->create([
+                        'title' => $r['title'] ?? 'Reminder',
+                        'amount' => $r['amount'] ?? null,
+                        'due_date' => $r['due_date'],
+                        'is_done' => $r['is_done'] ?? false,
+                        'note' => $r['note'] ?? null,
+                    ]);
+                    $counts['reminders']++;
+                }
+
+                // Teacher fee payments — relink party + cashbook entry.
+                foreach ($b['fee_payments'] ?? [] as $fp) {
+                    $partyId = isset($fp['party_id']) ? ($partyMap[$fp['party_id']] ?? null) : null;
+                    if ($partyId === null || empty($fp['period'])) {
+                        continue; // orphan without a party can't be restored
+                    }
+                    $business->feePayments()->create([
+                        'party_id' => $partyId,
+                        'cashbook_entry_id' => isset($fp['cashbook_entry_id'])
+                            ? ($cashbookMap[$fp['cashbook_entry_id']] ?? null)
+                            : null,
+                        'period' => $fp['period'],
+                        'amount' => $fp['amount'] ?? 0,
+                        'paid_at' => $fp['paid_at'] ?? now()->toDateString(),
+                    ]);
+                    $counts['fee_payments']++;
+                }
+
+                // Attendance — relink party.
+                foreach ($b['attendances'] ?? [] as $a) {
+                    $partyId = isset($a['party_id']) ? ($partyMap[$a['party_id']] ?? null) : null;
+                    if ($partyId === null || empty($a['date'])) {
+                        continue;
+                    }
+                    $business->attendances()->create([
+                        'party_id' => $partyId,
+                        'date' => $a['date'],
+                        'status' => $a['status'] ?? 'present',
+                    ]);
+                    $counts['attendances']++;
                 }
             }
         });

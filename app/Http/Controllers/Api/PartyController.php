@@ -55,6 +55,9 @@ class PartyController extends ApiController
             'type' => ['required', 'in:customer,supplier'],
             'address' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric'],
+            'monthly_fee' => ['nullable', 'numeric', 'min:0'],
+            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'roll' => ['nullable', 'string', 'max:40'],
         ]);
 
         $party = $business->parties()->create($data);
@@ -82,6 +85,9 @@ class PartyController extends ApiController
             'type' => ['sometimes', 'required', 'in:customer,supplier'],
             'address' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric'],
+            'monthly_fee' => ['nullable', 'numeric', 'min:0'],
+            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'roll' => ['nullable', 'string', 'max:40'],
         ]);
 
         $party->update($data);

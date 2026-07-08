@@ -52,6 +52,50 @@ class ReportController extends ApiController
     }
 
     /**
+     * Monthly income/expense snapshot for the personal categories:
+     * this month's income, expense, net, the set budget, and an
+     * expense-by-category breakdown. ?month=YYYY-MM (defaults to now).
+     */
+    public function monthly(Request $request, Business $business): JsonResponse
+    {
+        $this->ensureOwnsBusiness($business);
+
+        $month = $request->string('month')->toString();
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = now()->format('Y-m');
+        }
+        [$year, $mon] = explode('-', $month);
+
+        $entries = $business->cashbookEntries()
+            ->whereYear('entry_date', (int) $year)
+            ->whereMonth('entry_date', (int) $mon)
+            ->get(['type', 'category', 'amount']);
+
+        $income = round((float) $entries->where('type', 'cash_in')->sum(fn ($e) => (float) $e->amount), 2);
+        $expense = round((float) $entries->where('type', 'cash_out')->sum(fn ($e) => (float) $e->amount), 2);
+
+        $byCategory = $entries->where('type', 'cash_out')
+            ->groupBy(fn ($e) => $e->category ?: 'Others')
+            ->map(fn ($grp, $name) => [
+                'name' => $name,
+                'total' => round((float) $grp->sum(fn ($e) => (float) $e->amount), 2),
+            ])
+            ->sortByDesc('total')
+            ->values();
+
+        $budget = $business->budgets()->where('period', $month)->value('amount');
+
+        return $this->ok([
+            'month' => $month,
+            'income' => $income,
+            'expense' => $expense,
+            'net' => round($income - $expense, 2),
+            'budget' => $budget !== null ? (float) $budget : null,
+            'by_category' => $byCategory,
+        ]);
+    }
+
+    /**
      * Cashbook report over an optional date range.
      */
     public function cashbook(Request $request, Business $business): JsonResponse

@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'name', 'phone', 'type', 'address', 'opening_balance'])]
+#[Fillable(['business_id', 'name', 'phone', 'type', 'address', 'opening_balance', 'monthly_fee', 'batch_id', 'roll'])]
 class Party extends Model
 {
     protected function casts(): array
     {
         return [
             'opening_balance' => 'decimal:2',
+            'monthly_fee' => 'decimal:2',
         ];
     }
 
@@ -30,6 +31,21 @@ class Party extends Model
     public function vouchers(): HasMany
     {
         return $this->hasMany(Voucher::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
+    }
+
+    public function feePayments(): HasMany
+    {
+        return $this->hasMany(FeePayment::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     /**

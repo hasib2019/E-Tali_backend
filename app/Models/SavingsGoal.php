@@ -6,24 +6,21 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['business_id', 'user_id', 'type', 'amount', 'category', 'note', 'entry_date', 'image_path', 'signature_path'])]
-class CashbookEntry extends Model
+#[Fillable(['business_id', 'name', 'target_amount', 'saved_amount', 'target_date', 'is_done'])]
+class SavingsGoal extends Model
 {
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
-            'entry_date' => 'date',
+            'target_amount' => 'decimal:2',
+            'saved_amount' => 'decimal:2',
+            'target_date' => 'date',
+            'is_done' => 'boolean',
         ];
     }
 
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }

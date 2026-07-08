@@ -1,11 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\CashbookController;
+use App\Http\Controllers\Api\CashCategoryController;
 use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\SavingsGoalController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\PartyController;
 use App\Http\Controllers\Api\ProductController;
@@ -78,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Party transactions (দিলাম / পেলাম)
         Route::get('parties/{party}/transactions', [TransactionController::class, 'index']);
         Route::post('parties/{party}/transactions', [TransactionController::class, 'store']);
+        Route::put('transactions/{transaction}', [TransactionController::class, 'update']);
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy']);
 
         // Products (পণ্য catalog)
@@ -90,15 +98,57 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('parties/{party}/vouchers', [VoucherController::class, 'index']);
         Route::post('parties/{party}/vouchers', [VoucherController::class, 'store']);
         Route::get('vouchers/{voucher}', [VoucherController::class, 'show']);
+        Route::put('vouchers/{voucher}', [VoucherController::class, 'update']);
         Route::delete('vouchers/{voucher}', [VoucherController::class, 'destroy']);
 
         // Cashbook (নগদ জমা / খরচ)
         Route::get('businesses/{business}/cashbook', [CashbookController::class, 'index']);
         Route::post('businesses/{business}/cashbook', [CashbookController::class, 'store']);
+        Route::get('cashbook/{cashbookEntry}', [CashbookController::class, 'show']);
+        Route::put('cashbook/{cashbookEntry}', [CashbookController::class, 'update']);
         Route::delete('cashbook/{cashbookEntry}', [CashbookController::class, 'destroy']);
+
+        // Cash categories (income/expense buckets shown as chips)
+        Route::get('businesses/{business}/cash-categories', [CashCategoryController::class, 'index']);
+        Route::post('businesses/{business}/cash-categories', [CashCategoryController::class, 'store']);
+        Route::put('cash-categories/{cashCategory}', [CashCategoryController::class, 'update']);
+        Route::delete('cash-categories/{cashCategory}', [CashCategoryController::class, 'destroy']);
+
+        // Monthly budget (personal)
+        Route::get('businesses/{business}/budgets', [BudgetController::class, 'index']);
+        Route::post('businesses/{business}/budgets', [BudgetController::class, 'store']);
+        Route::delete('budgets/{budget}', [BudgetController::class, 'destroy']);
+
+        // Savings goals (personal)
+        Route::get('businesses/{business}/savings', [SavingsGoalController::class, 'index']);
+        Route::post('businesses/{business}/savings', [SavingsGoalController::class, 'store']);
+        Route::put('savings/{savingsGoal}', [SavingsGoalController::class, 'update']);
+        Route::delete('savings/{savingsGoal}', [SavingsGoalController::class, 'destroy']);
+
+        // Bill / fee reminders
+        Route::get('businesses/{business}/reminders', [ReminderController::class, 'index']);
+        Route::post('businesses/{business}/reminders', [ReminderController::class, 'store']);
+        Route::put('reminders/{reminder}', [ReminderController::class, 'update']);
+        Route::delete('reminders/{reminder}', [ReminderController::class, 'destroy']);
+
+        // Teacher — batches
+        Route::get('businesses/{business}/batches', [BatchController::class, 'index']);
+        Route::post('businesses/{business}/batches', [BatchController::class, 'store']);
+        Route::put('batches/{batch}', [BatchController::class, 'update']);
+        Route::delete('batches/{batch}', [BatchController::class, 'destroy']);
+
+        // Teacher — fee collection
+        Route::get('businesses/{business}/fees/collection', [FeeController::class, 'collection']);
+        Route::post('businesses/{business}/fees', [FeeController::class, 'store']);
+        Route::delete('fees/{feePayment}', [FeeController::class, 'destroy']);
+
+        // Teacher — attendance
+        Route::get('businesses/{business}/attendance', [AttendanceController::class, 'index']);
+        Route::post('businesses/{business}/attendance', [AttendanceController::class, 'store']);
 
         // Reports
         Route::get('businesses/{business}/reports/summary', [ReportController::class, 'summary']);
+        Route::get('businesses/{business}/reports/monthly', [ReportController::class, 'monthly']);
         Route::get('businesses/{business}/reports/cashbook', [ReportController::class, 'cashbook']);
         Route::get('businesses/{business}/reports/parties', [ReportController::class, 'parties']);
         Route::get('parties/{party}/statement', [ReportController::class, 'statement']);
