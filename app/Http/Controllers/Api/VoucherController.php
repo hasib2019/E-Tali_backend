@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Party;
+use App\Models\Product;
 use App\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -81,6 +82,9 @@ class VoucherController extends ApiController
                 ]);
             }
 
+            // Inventory: a sale reduces stock, a purchase (from a supplier) restocks.
+            $this->moveStock($data['items'], $type, $party->business_id, 'apply');
+
             $updates = [];
             if (! empty($data['image'])) {
                 $updates['image_path'] = $this->storeBase64($data['image'], $voucher->id, 'image');
@@ -132,6 +136,9 @@ class VoucherController extends ApiController
         $due = round($total - $paid, 2);
 
         DB::transaction(function () use ($voucher, $data, $total, $paid, $due) {
+            // Undo the old items' stock effect before replacing them.
+            $this->moveStock($voucher->items()->get(), $voucher->type, $voucher->business_id, 'reverse');
+
             $voucher->update([
                 'voucher_date' => $data['voucher_date'] ?? $voucher->voucher_date,
                 'total_amount' => $total,
@@ -150,6 +157,9 @@ class VoucherController extends ApiController
                     'line_total' => round((float) $it['quantity'] * (float) $it['unit_price'], 2),
                 ]);
             }
+
+            // Apply the new items' stock effect.
+            $this->moveStock($data['items'], $voucher->type, $voucher->business_id, 'apply');
 
             $updates = [];
             if (! empty($data['image'])) {
@@ -170,14 +180,44 @@ class VoucherController extends ApiController
     {
         $this->ensureOwnsVoucher($voucher);
 
-        foreach (['image_path', 'signature_path'] as $col) {
-            if ($voucher->$col) {
-                Storage::disk('public')->delete($voucher->$col);
+        DB::transaction(function () use ($voucher) {
+            // Undo this voucher's stock effect (sale returns stock, purchase removes it).
+            $this->moveStock($voucher->items()->get(), $voucher->type, $voucher->business_id, 'reverse');
+
+            foreach (['image_path', 'signature_path'] as $col) {
+                if ($voucher->$col) {
+                    Storage::disk('public')->delete($voucher->$col);
+                }
             }
-        }
-        $voucher->delete();
+            $voucher->delete();
+        });
 
         return $this->ok(null, 'Voucher deleted.');
+    }
+
+    /**
+     * Move product stock for a voucher's items.
+     * A sale reduces stock, a purchase increases it; `reverse` flips the sign
+     * (used when editing/deleting to undo a prior effect). Only touches
+     * products of the given business, and only line items linked to a product.
+     *
+     * @param  iterable  $items  arrays (['product_id','quantity']) or VoucherItem models
+     */
+    private function moveStock(iterable $items, string $type, int $businessId, string $mode): void
+    {
+        $factor = ($type === 'sale' ? -1 : 1) * ($mode === 'reverse' ? -1 : 1);
+
+        foreach ($items as $it) {
+            $productId = data_get($it, 'product_id');
+            $qty = (float) data_get($it, 'quantity', 0);
+            if (! $productId || $qty == 0.0) {
+                continue;
+            }
+            $delta = $factor * $qty;
+            Product::where('id', $productId)
+                ->where('business_id', $businessId)
+                ->update(['stock' => DB::raw('stock + '.$delta)]);
+        }
     }
 
     /** Store a base64 data URL to the public disk, return its relative path. */

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\PartyController;
@@ -88,10 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('transactions/{transaction}', [TransactionController::class, 'update']);
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy']);
 
-        // Products (পণ্য catalog)
+        // Products (পণ্য catalog) with inventory
         Route::get('businesses/{business}/products', [ProductController::class, 'index']);
         Route::post('businesses/{business}/products', [ProductController::class, 'store']);
         Route::put('products/{product}', [ProductController::class, 'update']);
+        Route::post('products/{product}/adjust-stock', [ProductController::class, 'adjustStock']);
         Route::delete('products/{product}', [ProductController::class, 'destroy']);
 
         // Vouchers / bills (বিক্রি / ক্রয়) with line items
@@ -114,10 +116,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('cash-categories/{cashCategory}', [CashCategoryController::class, 'update']);
         Route::delete('cash-categories/{cashCategory}', [CashCategoryController::class, 'destroy']);
 
-        // Monthly budget (personal)
+        // Named budgets / envelopes (personal)
         Route::get('businesses/{business}/budgets', [BudgetController::class, 'index']);
         Route::post('businesses/{business}/budgets', [BudgetController::class, 'store']);
+        Route::put('budgets/{budget}', [BudgetController::class, 'update']);
         Route::delete('budgets/{budget}', [BudgetController::class, 'destroy']);
+
+        // Salary / allowance (personal)
+        Route::post('businesses/{business}/salary', [SalaryController::class, 'add']);
 
         // Savings goals (personal)
         Route::get('businesses/{business}/savings', [SavingsGoalController::class, 'index']);
@@ -149,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Reports
         Route::get('businesses/{business}/reports/summary', [ReportController::class, 'summary']);
         Route::get('businesses/{business}/reports/monthly', [ReportController::class, 'monthly']);
+        Route::get('businesses/{business}/reports/personal', [ReportController::class, 'personal']);
         Route::get('businesses/{business}/reports/cashbook', [ReportController::class, 'cashbook']);
         Route::get('businesses/{business}/reports/parties', [ReportController::class, 'parties']);
         Route::get('parties/{party}/statement', [ReportController::class, 'statement']);

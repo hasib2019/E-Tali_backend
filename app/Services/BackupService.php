@@ -56,6 +56,8 @@ class BackupService
                 'unit' => $p->unit,
                 'sale_price' => $p->sale_price,
                 'purchase_price' => $p->purchase_price,
+                'stock' => $p->stock,
+                'category' => $p->category,
             ])->values(),
             'batches' => $b->batches->map(fn ($bt) => [
                 'id' => $bt->id, // original id, used to relink parties on restore
@@ -109,7 +111,7 @@ class BackupService
                 'sort' => $cc->sort,
             ])->values(),
             'budgets' => $b->budgets->map(fn ($bd) => [
-                'period' => $bd->period,
+                'name' => $bd->name,
                 'amount' => $bd->amount,
             ])->values(),
             'savings_goals' => $b->savingsGoals->map(fn ($sg) => [
@@ -201,6 +203,8 @@ class BackupService
                         'unit' => $p['unit'] ?? null,
                         'sale_price' => $p['sale_price'] ?? 0,
                         'purchase_price' => $p['purchase_price'] ?? 0,
+                        'stock' => $p['stock'] ?? 0,
+                        'category' => $p['category'] ?? null,
                     ]);
                     if (isset($p['id'])) {
                         $productMap[$p['id']] = $product->id;
@@ -306,12 +310,12 @@ class BackupService
                 }
 
                 foreach ($b['budgets'] ?? [] as $bd) {
-                    if (empty($bd['period'])) {
+                    if (empty($bd['name'])) {
                         continue;
                     }
                     $business->budgets()->create([
-                        'period' => $bd['period'],
-                        'amount' => $bd['amount'] ?? 0,
+                        'name' => $bd['name'],
+                        'amount' => $bd['amount'] ?? null,
                     ]);
                     $counts['budgets']++;
                 }

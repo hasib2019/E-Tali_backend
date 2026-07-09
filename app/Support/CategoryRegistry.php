@@ -30,6 +30,12 @@ class CategoryRegistry
         return $category !== null && in_array($category, self::CATEGORIES, true);
     }
 
+    /** Personal-finance categories share the single-balance model. */
+    public static function isPersonal(?string $category): bool
+    {
+        return in_array($category, [self::SALARIED, self::STUDENT], true);
+    }
+
     public static function normalize(?string $category): string
     {
         return self::isValid($category) ? $category : self::DEFAULT;

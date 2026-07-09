@@ -96,6 +96,91 @@ class ReportController extends ApiController
     }
 
     /**
+     * Personal-finance snapshot (salaried / student). Everything lives on one
+     * running Balance:
+     *   balance = cash-in-hand + (repayments received − money lent)
+     * Salary/income raises it; expenses, savings deposits, budget spends and
+     * lending lower it; repayments received raise it. ?month=YYYY-MM.
+     */
+    public function personal(Request $request, Business $business): JsonResponse
+    {
+        $this->ensureOwnsBusiness($business);
+
+        $month = $request->string('month')->toString();
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = now()->format('Y-m');
+        }
+        [$year, $mon] = explode('-', $month);
+
+        $cashIn = (float) $business->cashbookEntries()->where('type', 'cash_in')->sum('amount');
+        $cashOut = (float) $business->cashbookEntries()->where('type', 'cash_out')->sum('amount');
+        $cashInHand = $cashIn - $cashOut;
+
+        // Savings pool = deposits (cash-out 'Savings') − withdrawals (cash-in 'Savings').
+        $savingsOut = (float) $business->cashbookEntries()->where('type', 'cash_out')->where('category', 'Savings')->sum('amount');
+        $savingsIn = (float) $business->cashbookEntries()->where('type', 'cash_in')->where('category', 'Savings')->sum('amount');
+
+        // Person ledger effect on cash: repayment received (credit) up, lending (debit) down.
+        $credit = (float) $business->transactions()->where('type', 'credit')->sum('amount');
+        $debit = (float) $business->transactions()->where('type', 'debit')->sum('amount');
+        $txnNet = $credit - $debit;
+
+        $balance = round($cashInHand + $txnNet, 2);
+
+        // This month (savings transfers excluded from "expense").
+        $monthEntries = $business->cashbookEntries()
+            ->whereYear('entry_date', (int) $year)
+            ->whereMonth('entry_date', (int) $mon)
+            ->get(['type', 'category', 'amount']);
+        $monthIncome = round((float) $monthEntries->where('type', 'cash_in')->sum(fn ($e) => (float) $e->amount), 2);
+        $expenseEntries = $monthEntries->where('type', 'cash_out')->filter(fn ($e) => ($e->category ?: '') !== 'Savings');
+        $monthExpense = round((float) $expenseEntries->sum(fn ($e) => (float) $e->amount), 2);
+        $byCategory = $expenseEntries
+            ->groupBy(fn ($e) => $e->category ?: 'Others')
+            ->map(fn ($grp, $name) => ['name' => $name, 'total' => round((float) $grp->sum(fn ($e) => (float) $e->amount), 2)])
+            ->sortByDesc('total')
+            ->values();
+
+        $salaryAdded = $business->cashbookEntries()
+            ->where('type', 'cash_in')
+            ->whereIn('category', ['Salary', 'Allowance'])
+            ->whereYear('entry_date', (int) $year)
+            ->whereMonth('entry_date', (int) $mon)
+            ->exists();
+
+        // Who owes you / whom you owe, from the simple person ledger.
+        $parties = $business->parties()
+            ->withSum(['transactions as debit_total' => fn ($q) => $q->where('type', 'debit')], 'amount')
+            ->withSum(['transactions as credit_total' => fn ($q) => $q->where('type', 'credit')], 'amount')
+            ->get();
+        $lent = 0.0;
+        $borrowed = 0.0;
+        foreach ($parties as $p) {
+            $bal = (float) $p->opening_balance + (float) $p->debit_total - (float) $p->credit_total;
+            if ($bal > 0) {
+                $lent += $bal;
+            } elseif ($bal < 0) {
+                $borrowed += abs($bal);
+            }
+        }
+
+        return $this->ok([
+            'month' => $month,
+            'balance' => $balance,
+            'cash_in_hand' => round($cashInHand, 2),
+            'savings' => round($savingsOut - $savingsIn, 2),
+            'salary' => (float) data_get($business->meta, 'monthly_salary', 0),
+            'salary_added' => $salaryAdded,
+            'month_income' => $monthIncome,
+            'month_expense' => $monthExpense,
+            'month_net' => round($monthIncome - $monthExpense, 2),
+            'lent' => round($lent, 2),
+            'borrowed' => round($borrowed, 2),
+            'by_category' => $byCategory,
+        ]);
+    }
+
+    /**
      * Cashbook report over an optional date range.
      */
     public function cashbook(Request $request, Business $business): JsonResponse
