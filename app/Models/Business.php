@@ -81,4 +81,9 @@ class Business extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
 }

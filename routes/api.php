@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
@@ -124,6 +125,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Salary / allowance (personal)
         Route::post('businesses/{business}/salary', [SalaryController::class, 'add']);
+
+        // Business notes (ব্যবসার নোট)
+        Route::get('businesses/{business}/notes', [NoteController::class, 'index']);
+        Route::post('businesses/{business}/notes', [NoteController::class, 'store']);
+        Route::put('notes/{note}', [NoteController::class, 'update']);
+        Route::delete('notes/{note}', [NoteController::class, 'destroy']);
 
         // Savings goals (personal)
         Route::get('businesses/{business}/savings', [SavingsGoalController::class, 'index']);
