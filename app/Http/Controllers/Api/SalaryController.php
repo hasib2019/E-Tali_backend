@@ -23,7 +23,7 @@ class SalaryController extends ApiController
             return response()->json(['success' => false, 'message' => 'Set your monthly salary first.'], 422);
         }
 
-        $label = $business->category === CategoryRegistry::STUDENT ? 'Allowance' : 'Salary';
+        $label = CategoryRegistry::incomeLabel($business->category);
         $month = now()->format('Y-m');
 
         $already = $business->cashbookEntries()

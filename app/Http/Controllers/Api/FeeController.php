@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Business;
 use App\Models\FeePayment;
 use App\Models\Party;
+use App\Support\CategoryRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -91,13 +92,15 @@ class FeeController extends ApiController
         $student = Party::findOrFail($data['party_id']);
         abort_unless($student->business_id === $business->id, 403, 'This student does not belong to you.');
 
-        $payment = DB::transaction(function () use ($business, $student, $data, $request) {
+        $label = CategoryRegistry::collectionLabel($business->category);
+
+        $payment = DB::transaction(function () use ($business, $student, $data, $request, $label) {
             $existing = $business->feePayments()
                 ->where('party_id', $student->id)
                 ->where('period', $data['period'])
                 ->first();
 
-            $note = "Tuition fee {$data['period']} · {$student->name}";
+            $note = "{$label} {$data['period']} · {$student->name}";
 
             if ($existing && $existing->cashbook_entry_id) {
                 $existing->cashbookEntry?->update(['amount' => $data['amount'], 'note' => $note]);
@@ -107,7 +110,7 @@ class FeeController extends ApiController
                     'user_id' => $request->user()->id,
                     'type' => 'cash_in',
                     'amount' => $data['amount'],
-                    'category' => 'Tuition fee',
+                    'category' => $label,
                     'note' => $note,
                     'entry_date' => now()->toDateString(),
                 ]);

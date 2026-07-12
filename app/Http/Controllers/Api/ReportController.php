@@ -143,7 +143,7 @@ class ReportController extends ApiController
 
         $salaryAdded = $business->cashbookEntries()
             ->where('type', 'cash_in')
-            ->whereIn('category', ['Salary', 'Allowance'])
+            ->whereIn('category', ['Salary', 'Allowance', 'Income'])
             ->whereYear('entry_date', (int) $year)
             ->whereMonth('entry_date', (int) $mon)
             ->exists();
