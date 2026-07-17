@@ -110,8 +110,11 @@ class MigrationService
                 ];
             }
             foreach ($b->budgets as $x) {
+                // Legacy monthly budgets (pre make_budgets_named) have a NULL name; the
+                // device schema requires budgets.name NOT NULL, so fall back to the period.
                 $t['budgets'][] = [
-                    'id' => $x->id, 'business_id' => $x->business_id, 'name' => $x->name, 'period' => $x->period,
+                    'id' => $x->id, 'business_id' => $x->business_id,
+                    'name' => $x->name ?? $x->period ?? 'Budget', 'period' => $x->period,
                     'amount' => $x->amount, 'created_at' => $dt($x->created_at), 'updated_at' => $dt($x->updated_at),
                 ];
             }
