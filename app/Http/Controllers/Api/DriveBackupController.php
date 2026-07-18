@@ -143,12 +143,12 @@ class DriveBackupController extends ApiController
     }
 
     /**
-     * Update the automatic backup frequency (off | daily | weekly | monthly).
+     * Update the automatic backup frequency (off | daily | weekly | monthly | yearly).
      */
     public function schedule(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'backup_frequency' => ['required', 'in:off,daily,weekly,monthly'],
+            'backup_frequency' => ['required', 'in:off,daily,weekly,monthly,yearly'],
         ]);
 
         $request->user()->forceFill(['backup_frequency' => $data['backup_frequency']])->save();

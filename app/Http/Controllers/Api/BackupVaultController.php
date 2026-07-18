@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Storage;
  */
 class BackupVaultController extends ApiController
 {
+    /** How many most-recent backups to retain per user (older ones are pruned). */
+    private const KEEP_BACKUPS = 5;
+
     /** The owner master key (base64) the app encrypts/decrypts backups with. */
     public function key(): JsonResponse
     {
@@ -69,9 +72,35 @@ class BackupVaultController extends ApiController
             }
         }
 
+        // Keep only the latest N backups per user — delete older rows AND their
+        // stored ciphertext files so the vault never grows unbounded.
+        $this->pruneOld($user, self::KEEP_BACKUPS);
+
         $user->forceFill(['last_backup_at' => now()])->saveQuietly();
 
         return $this->ok($this->present($record->fresh()), 'Backup stored.', 201);
+    }
+
+    /**
+     * Retain only the {@see KEEP_BACKUPS} newest backups for a user; delete the
+     * rest (row + file). Runs only inside a successful upload, so a failed upload
+     * never prunes. The just-written record is always among the newest, so it is
+     * never the one deleted.
+     */
+    private function pruneOld(\App\Models\User $user, int $keep): void
+    {
+        $keepIds = EncryptedBackup::where('user_id', $user->id)
+            ->latest()
+            ->limit($keep)
+            ->pluck('id');
+
+        EncryptedBackup::where('user_id', $user->id)
+            ->whereNotIn('id', $keepIds)
+            ->get()
+            ->each(function (EncryptedBackup $old): void {
+                Storage::disk('local')->delete($old->storage_path);
+                $old->delete();
+            });
     }
 
     /** The user's tracked backups, newest first. */
