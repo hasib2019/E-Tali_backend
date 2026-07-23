@@ -12,21 +12,22 @@ use App\Http\Controllers\Api\CashCategoryController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
-use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MessController;
 use App\Http\Controllers\Api\MigrationController;
 use App\Http\Controllers\Api\NoteController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PartyController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
 use App\Http\Controllers\Api\SubscriptionController;
-use App\Http\Controllers\Api\PartyController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\VoucherController;
+use App\Http\Middleware\TouchLastActive;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,10 +45,12 @@ Route::get('/packages', [SubscriptionController::class, 'packages']);
 | Protected routes (Sanctum token required)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', \App\Http\Middleware\TouchLastActive::class])->group(function () {
+Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     // Auth / account (always reachable, even while locked, so the app can
     // read state and drive the verify / renew / logout flows).
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Email verification (reachable while unverified so the app can drive the flow).
