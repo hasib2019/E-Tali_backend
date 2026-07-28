@@ -18,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
     'name', 'email', 'phone', 'password', 'email_verified_at',
     'is_active', 'provider', 'google_id', 'avatar',
     'package_id', 'subscription_status', 'subscribed_at', 'subscription_expires_at', 'is_paid',
-    'backup_frequency', 'last_backup_at', 'last_active_at', 'last_screen',
+    'backup_frequency', 'last_backup_at', 'last_active_at', 'last_screen', 'migrated_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'subscription_expires_at' => 'datetime',
             'last_backup_at' => 'datetime',
             'last_active_at' => 'datetime',
+            'migrated_at' => 'datetime',
         ];
     }
 

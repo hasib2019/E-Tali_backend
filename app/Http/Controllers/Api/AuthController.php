@@ -176,6 +176,11 @@ class AuthController extends ApiController
             'has_active_subscription' => $user->hasActiveSubscription(),
             'backup_frequency' => $user->backup_frequency,
             'last_backup_at' => $user->last_backup_at?->toIso8601String(),
+            // Set once, the first time this account's ledger was handed off to a
+            // device (see MigrationController::confirm). The server no longer
+            // holds this user's ledger after that — a fresh device must restore
+            // from the Drive-backed vault backup instead of expecting a migration.
+            'migrated_at' => $user->migrated_at?->toIso8601String(),
             'drive_connected' => Schema::hasTable('google_drive_credentials')
                 && $user->driveCredential()->exists(),
             // Backend-authoritative entitlements the app caches + enforces offline.

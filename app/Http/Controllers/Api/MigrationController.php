@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Storage;
  * the device confirms a successful import (`confirm`). Once confirmed, the
  * server archives a JSON snapshot to disk and wipes its own ledger copy — the
  * device is now the source of truth. The archive is a safety net: a later
- * Yearly upgrade can pull it back via `restoreArchive`.
+ * Yearly upgrade can pull it back via `restoreArchive`, which re-arms this
+ * same migration record so a device then re-pulls it through `status`/
+ * `export`/`confirm` exactly as on first migration.
  */
 class MigrationController extends ApiController
 {
@@ -127,15 +129,26 @@ class MigrationController extends ApiController
 
         DB::transaction(function () use ($user, $migration, $path) {
             $user->businesses()->delete();
+            $user->update(['migrated_at' => now()]);
             $migration->update(['archive_path' => $path, 'archived_at' => now()]);
         });
     }
 
     /**
      * Let a user who has since upgraded to a backup-eligible plan (Yearly) pull
-     * their pre-migration snapshot back into the server ledger. This restores
-     * the SERVER copy only — there is no device-side flow yet to pull it from
-     * here into the app's local SQLite ledger.
+     * their pre-migration snapshot back into the server ledger, then RE-ARM the
+     * migration record so a device picks it up through the normal flow.
+     *
+     * `status()` only ever looks at `device_migrations.status` — it never
+     * inspects `businesses` directly for a 'confirmed' row. So simply importing
+     * data back into `businesses` here would be invisible to every device:
+     * `status()` would still report 'done' and nothing would be pulled. Clearing
+     * this row back to its pre-migration shape (status != 'confirmed', but the
+     * row still exists) makes `status()` fall through to 'required', since
+     * `businesses()->exists()` is now true. The next device that logs in then
+     * runs the ordinary export→confirm dance, and `confirm()` re-archives and
+     * re-wipes exactly as on first migration — `device_migrations` remains the
+     * single source of truth throughout, with no separate "restored" flag.
      */
     public function restoreArchive(Request $request, BackupService $backup): JsonResponse
     {
@@ -155,7 +168,18 @@ class MigrationController extends ApiController
 
         $counts = $backup->import($user, json_decode($json, true), 'replace');
 
-        return $this->ok(['counts' => $counts], 'Restored from your pre-migration backup.');
+        Storage::disk('local')->delete($migration->archive_path);
+        $migration->update([
+            'status' => 'pending',
+            'checksum' => null,
+            'exported_at' => null,
+            'confirmed_at' => null,
+            'device_id' => null,
+            'archive_path' => null,
+            'archived_at' => null,
+        ]);
+
+        return $this->ok(['counts' => $counts], 'Restored — a device can now pull this down via the normal migration flow.');
     }
 
     /**

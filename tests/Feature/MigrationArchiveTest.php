@@ -41,6 +41,7 @@ class MigrationArchiveTest extends TestCase
         ])->assertOk()->assertJsonPath('data.state', 'done');
 
         $this->assertSame(0, $user->businesses()->count());
+        $this->assertNotNull($user->fresh()->migrated_at);
 
         $migration = \App\Models\DeviceMigration::where('user_id', $user->id)->first();
         $this->assertSame('confirmed', $migration->status);
@@ -120,5 +121,46 @@ class MigrationArchiveTest extends TestCase
 
         $this->assertSame(1, $user->businesses()->count());
         $this->assertSame('Karim', $user->businesses()->first()->parties()->first()->name);
+    }
+
+    public function test_restore_archive_rearms_migration_for_a_new_device(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $this->seedLedger($user);
+        Sanctum::actingAs($user);
+
+        $export = $this->postJson('/api/migration/export')->assertOk()->json('data');
+        $this->postJson('/api/migration/confirm', [
+            'migration_id' => $export['migration_id'],
+            'checksum' => $export['checksum'],
+        ])->assertOk();
+
+        $yearly = Package::create([
+            'name' => 'Yearly-Test', 'price' => 5000, 'duration_days' => 365,
+            'features' => ['products', 'backup', 'auto_backup'],
+        ]);
+        $user->update(['package_id' => $yearly->id, 'subscription_expires_at' => now()->addYear()]);
+        Sanctum::actingAs($user->fresh());
+        $this->postJson('/api/migration/restore-archive')->assertOk();
+
+        // A brand-new device (no local `_meta.migrated_user` marker) now checks in —
+        // it must see 'required', not the stale 'done' from before the restore.
+        $this->getJson('/api/migration/status')->assertOk()->assertJsonPath('data.state', 'required');
+
+        // That new device runs the normal export→confirm dance...
+        $secondExport = $this->postJson('/api/migration/export')->assertOk()->json('data');
+        $this->postJson('/api/migration/confirm', [
+            'migration_id' => $secondExport['migration_id'],
+            'checksum' => $secondExport['checksum'],
+        ])->assertOk();
+
+        // ...and the server re-archives + re-wipes exactly as on first migration.
+        $this->assertSame(0, $user->businesses()->count());
+        $migration = \App\Models\DeviceMigration::where('user_id', $user->id)->first();
+        $this->assertSame('confirmed', $migration->status);
+        $this->assertNotNull($migration->archive_path);
+        Storage::disk('local')->assertExists($migration->archive_path);
+        $this->getJson('/api/migration/status')->assertOk()->assertJsonPath('data.state', 'done');
     }
 }
