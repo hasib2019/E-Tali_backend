@@ -4,15 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\HandlesMedia;
 use App\Models\DeviceMigration;
+use App\Models\User;
+use App\Services\BackupService;
 use App\Services\MigrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One-time server→device migration for existing users. Two-phase and safe:
  * the server exports a verified snapshot but keeps all live ledger data until
- * the device confirms a successful import (`confirm`). Nothing is deleted here.
+ * the device confirms a successful import (`confirm`). Once confirmed, the
+ * server archives a JSON snapshot to disk and wipes its own ledger copy — the
+ * device is now the source of truth. The archive is a safety net: a later
+ * Yearly upgrade can pull it back via `restoreArchive`.
  */
 class MigrationController extends ApiController
 {
@@ -71,8 +77,11 @@ class MigrationController extends ApiController
         ]);
     }
 
-    /** Phase 2: the device proved a verified import — mark migrated (still no delete). */
-    public function confirm(Request $request): JsonResponse
+    /**
+     * Phase 2: the device proved a verified import — mark migrated, then archive
+     * the ledger to disk and wipe the server's copy (the device now owns it).
+     */
+    public function confirm(Request $request, BackupService $backup): JsonResponse
     {
         $data = $request->validate([
             'migration_id' => ['required', 'integer'],
@@ -92,7 +101,61 @@ class MigrationController extends ApiController
             'device_id' => $data['device_id'] ?? null,
         ]);
 
+        // Idempotency guard: confirm() can only meaningfully archive+wipe once —
+        // a retried/duplicate confirm call (same migration_id+checksum) must not
+        // re-run this against an already-wiped (now empty) ledger.
+        if (! $migration->archived_at) {
+            $this->archiveAndWipe($request->user(), $migration, $backup);
+        }
+
         return $this->ok(['state' => 'done']);
+    }
+
+    /**
+     * Snapshot the user's full server ledger to disk (reusing the same
+     * export/import pair the Drive backup feature already relies on), then
+     * delete their businesses (FK cascade clears every child row). The device
+     * already holds a verified copy at this point, so this is not data loss —
+     * it's freeing the server of ledger data it no longer needs to serve,
+     * while keeping one JSON copy in reserve.
+     */
+    private function archiveAndWipe(User $user, DeviceMigration $migration, BackupService $backup): void
+    {
+        $snapshot = $backup->export($user);
+        $path = "migration-archives/{$user->id}/{$migration->id}.json";
+        Storage::disk('local')->put($path, json_encode($snapshot));
+
+        DB::transaction(function () use ($user, $migration, $path) {
+            $user->businesses()->delete();
+            $migration->update(['archive_path' => $path, 'archived_at' => now()]);
+        });
+    }
+
+    /**
+     * Let a user who has since upgraded to a backup-eligible plan (Yearly) pull
+     * their pre-migration snapshot back into the server ledger. This restores
+     * the SERVER copy only — there is no device-side flow yet to pull it from
+     * here into the app's local SQLite ledger.
+     */
+    public function restoreArchive(Request $request, BackupService $backup): JsonResponse
+    {
+        $user = $request->user();
+        $features = $user->loadMissing('package')->package?->features ?? [];
+        abort_unless(
+            $user->hasActiveSubscription() && in_array('backup', $features, true),
+            403,
+            'Restoring your pre-migration backup requires an active Yearly plan.',
+        );
+
+        $migration = DeviceMigration::where('user_id', $user->id)->whereNotNull('archive_path')->first();
+        abort_unless($migration, 404, 'No archived pre-migration backup found for this account.');
+
+        $json = Storage::disk('local')->get($migration->archive_path);
+        abort_if($json === null, 404, 'Archived backup file is missing.');
+
+        $counts = $backup->import($user, json_decode($json, true), 'replace');
+
+        return $this->ok(['counts' => $counts], 'Restored from your pre-migration backup.');
     }
 
     /**

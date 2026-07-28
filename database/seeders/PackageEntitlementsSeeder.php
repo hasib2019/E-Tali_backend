@@ -9,8 +9,8 @@ use Illuminate\Database\Seeder;
  * Sets the offline-first plan ENTITLEMENTS on the existing tiers, per the owner's
  * spec — WITHOUT touching price/duration/description (so manual pricing is kept):
  *   Free Trial : 1 business, all categories, basic ledger (no backup)
- *   Monthly    : 10 businesses, all categories, everything incl. backup
- *   Yearly     : unlimited, all categories, everything
+ *   Monthly    : 10 businesses, all categories, everything (no backup — Yearly-exclusive)
+ *   Yearly     : unlimited, all categories, everything incl. backup
  *
  * Idempotent + safe: only updates the three named packages via the model (so
  * JSON casts apply); never deletes or reprices anything. Run:
@@ -25,7 +25,7 @@ class PackageEntitlementsSeeder extends Seeder
 
         $tiers = [
             'Free Trial' => ['max_businesses' => 1, 'allowed_categories' => null, 'features' => $ledger],
-            'Monthly' => ['max_businesses' => 10, 'allowed_categories' => null, 'features' => $withBackup],
+            'Monthly' => ['max_businesses' => 10, 'allowed_categories' => null, 'features' => $ledger],
             'Yearly' => ['max_businesses' => null, 'allowed_categories' => null, 'features' => $withBackup],
         ];
 

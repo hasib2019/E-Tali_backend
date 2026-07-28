@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'status', 'checksum', 'counts', 'device_id', 'exported_at', 'confirmed_at'])]
+#[Fillable(['user_id', 'status', 'checksum', 'counts', 'device_id', 'exported_at', 'confirmed_at', 'archive_path', 'archived_at'])]
 class DeviceMigration extends Model
 {
     protected function casts(): array
@@ -15,6 +15,7 @@ class DeviceMigration extends Model
             'counts' => 'array',
             'exported_at' => 'datetime',
             'confirmed_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 

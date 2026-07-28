@@ -77,10 +77,13 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
 
     // One-time server→device migration (reachable regardless of lock so users
-    // can always pull their data down; nothing is deleted server-side).
+    // can always pull their data down). `confirm` archives the ledger to disk
+    // and wipes the server's copy once the device has it; `restore-archive`
+    // lets a later Yearly upgrade pull that archive back.
     Route::get('/migration/status', [MigrationController::class, 'status']);
     Route::post('/migration/export', [MigrationController::class, 'export']);
     Route::post('/migration/confirm', [MigrationController::class, 'confirm']);
+    Route::post('/migration/restore-archive', [MigrationController::class, 'restoreArchive']);
     Route::get('/migration/media-manifest', [MigrationController::class, 'mediaManifest']);
     Route::post('/migration/media-batch', [MigrationController::class, 'mediaBatch']);
 
