@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LandingSection;
 use App\Models\Package;
 use App\Support\CategoryRegistry;
+use App\Support\LandingChrome;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -19,17 +20,9 @@ class LandingPageController extends Controller
 {
     public function __invoke(): View
     {
-        $locale = request()->string('lang')->lower()->value();
+        $locale = LandingChrome::resolveLocale();
 
-        if (in_array($locale, ['bn', 'en'], true)) {
-            session(['landing_locale' => $locale]);
-        } else {
-            $locale = session('landing_locale', 'bn');
-        }
-
-        App::setLocale($locale);
-
-        $sections = $this->landingSections();
+        $sections = LandingChrome::sections();
         // Load the complete translation group before adding partial CMS lines;
         // otherwise the translator would treat the first override as the group.
         Lang::get('landing');
@@ -97,34 +90,13 @@ class LandingPageController extends Controller
             $stats = $this->capabilityStats();
         }
 
-        $globalContent = $sections->get('global')?->content ?? [];
-        $siteSettings = array_merge(
-            [
-                'support_phone' => config('landing.support_phone'),
-                'support_email' => config('landing.support_email'),
-                'company_address' => config('landing.company_address'),
-                'android_url' => config('landing.android_url'),
-                'web_app_url' => config('landing.web_app_url'),
-                'facebook_url' => config('landing.facebook_url'),
-                'youtube_url' => config('landing.youtube_url'),
-                'linkedin_url' => config('landing.linkedin_url'),
-            ],
-            array_filter(
-                Arr::get($globalContent, 'settings', []),
-                static fn (mixed $value): bool => filled($value),
-            ),
-        );
+        $siteSettings = LandingChrome::siteSettings($sections);
 
         $heroImageUrl = filled($sections->get('hero')?->image_path)
             ? Storage::disk('public')->url($sections->get('hero')->image_path)
             : asset('images/landing/merchant-app.webp');
 
-        $sectionVisibility = collect([
-            'global', 'hero', 'stats', 'pillars', 'features', 'ledger', 'categories',
-            'personal', 'steps', 'backup', 'pricing', 'faq', 'cta',
-        ])->mapWithKeys(fn (string $key): array => [
-            $key => $sections->has($key) ? (bool) $sections->get($key)->is_active : true,
-        ])->all();
+        $sectionVisibility = LandingChrome::sectionVisibility($sections);
 
         return view('welcome', [
             'locale' => $locale,
@@ -140,25 +112,6 @@ class LandingPageController extends Controller
             'siteSettings' => $siteSettings,
             'heroImageUrl' => $heroImageUrl,
         ]);
-    }
-
-    /**
-     * @return Collection<string, LandingSection>
-     */
-    private function landingSections(): Collection
-    {
-        try {
-            if (! Schema::hasTable('landing_sections')) {
-                return collect();
-            }
-
-            return LandingSection::query()
-                ->orderBy('sort_order')
-                ->get()
-                ->keyBy('key');
-        } catch (Throwable) {
-            return collect();
-        }
     }
 
     /**

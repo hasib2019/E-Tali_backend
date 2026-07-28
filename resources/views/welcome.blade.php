@@ -40,67 +40,7 @@
 <body>
     <a class="skip-link" href="#main">{{ $locale === 'bn' ? 'মূল কনটেন্টে যান' : 'Skip to content' }}</a>
 
-    <header class="site-header" data-header>
-        <div class="container nav-wrap">
-            <a class="brand" href="#home" aria-label="E-Tali-Khata">
-                <img src="{{ asset('images/landing/app-mark.png') }}" alt="" width="48" height="48">
-                <span>
-                    <strong>ই-টালি-খাতা</strong>
-                    <small>{{ __('landing.brand_tagline') }}</small>
-                </span>
-            </a>
-
-            <nav class="desktop-nav" aria-label="Primary navigation">
-                <a href="#home">{{ __('landing.nav.home') }}</a>
-                @if ($sectionVisibility['features'])
-                <a href="#features">{{ __('landing.nav.features') }}</a>
-                @endif
-                @if ($sectionVisibility['categories'])
-                <a href="#solutions">{{ __('landing.nav.solutions') }}</a>
-                @endif
-                @if ($sectionVisibility['pricing'])
-                <a href="#pricing">{{ __('landing.nav.pricing') }}</a>
-                @endif
-                @if ($sectionVisibility['faq'])
-                <a href="#faq">{{ __('landing.nav.faq') }}</a>
-                @endif
-            </nav>
-
-            <div class="nav-actions">
-                <a class="language-link" href="{{ route('home', ['lang' => $locale === 'bn' ? 'en' : 'bn']) }}" aria-label="{{ $locale === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন' }}">
-                    <x-landing-icon name="globe" size="18"/>
-                    {{ $locale === 'bn' ? 'EN' : 'বাংলা' }}
-                </a>
-                <a class="button button-small button-primary desktop-cta" href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener">
-                    {{ __('landing.nav.download') }}
-                    <x-landing-icon name="download" size="18"/>
-                </a>
-                <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="{{ __('landing.nav.menu') }}" data-menu-toggle>
-                    <span class="menu-open-icon"><x-landing-icon name="menu" size="24"/></span>
-                    <span class="menu-close-icon"><x-landing-icon name="close" size="24"/></span>
-                </button>
-            </div>
-        </div>
-
-        <div class="mobile-menu" id="mobile-menu" data-mobile-menu>
-            <nav class="container" aria-label="Mobile navigation">
-                <a href="#home">{{ __('landing.nav.home') }}</a>
-                @if ($sectionVisibility['features'])
-                <a href="#features">{{ __('landing.nav.features') }}</a>
-                @endif
-                @if ($sectionVisibility['categories'])
-                <a href="#solutions">{{ __('landing.nav.solutions') }}</a>
-                @endif
-                @if ($sectionVisibility['pricing'])
-                <a href="#pricing">{{ __('landing.nav.pricing') }}</a>
-                @endif
-                @if ($sectionVisibility['faq'])
-                <a href="#faq">{{ __('landing.nav.faq') }}</a>
-                @endif
-                <a class="button button-primary" href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener">{{ __('landing.nav.download') }}</a>
-            </nav>
-        </div>
-    </header>
+    @include('partials.site-header')
 
     <main id="main">
         @if ($sectionVisibility['hero'])
@@ -513,58 +453,7 @@
         @endif
     </main>
 
-    @if ($sectionVisibility['global'])
-    <footer class="site-footer">
-        <div class="container footer-grid">
-            <div class="footer-brand">
-                <a class="brand brand-light" href="#home">
-                    <img src="{{ asset('images/landing/app-mark.png') }}" alt="" width="48" height="48">
-                    <span><strong>ই-টালি-খাতা</strong><small>{{ __('landing.brand_tagline') }}</small></span>
-                </a>
-                <p>{{ __('landing.footer.description') }}</p>
-                @if ($siteSettings['facebook_url'] || $siteSettings['youtube_url'] || $siteSettings['linkedin_url'])
-                    <div class="social-links">
-                        @foreach (['facebook' => 'f', 'youtube' => '▶', 'linkedin' => 'in'] as $network => $label)
-                            @if ($siteSettings["{$network}_url"])
-                                <a href="{{ $siteSettings["{$network}_url"] }}" target="_blank" rel="noopener" aria-label="{{ ucfirst($network) }}">{{ $label }}</a>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-            <div>
-                <h3>{{ __('landing.footer.product') }}</h3>
-                @if ($sectionVisibility['features'])
-                <a href="#features">{{ __('landing.nav.features') }}</a>
-                @endif
-                @if ($sectionVisibility['categories'])
-                <a href="#solutions">{{ __('landing.nav.solutions') }}</a>
-                @endif
-                @if ($sectionVisibility['pricing'])
-                <a href="#pricing">{{ __('landing.nav.pricing') }}</a>
-                @endif
-                @if ($sectionVisibility['faq'])
-                <a href="#faq">{{ __('landing.nav.faq') }}</a>
-                @endif
-            </div>
-            <div>
-                <h3>{{ __('landing.footer.company') }}</h3>
-                <span>{{ __('landing.footer.support') }}: {{ $siteSettings['support_phone'] }}</span>
-                <a href="mailto:{{ $siteSettings['support_email'] }}">{{ $siteSettings['support_email'] }}</a>
-                <span>{{ __('landing.footer.address') }}: {{ $siteSettings['company_address'] }}</span>
-            </div>
-            <div>
-                <h3>{{ __('landing.footer.legal') }}</h3>
-                <a href="{{ route('home', ['lang' => $locale === 'bn' ? 'en' : 'bn']) }}">{{ $locale === 'bn' ? 'English' : 'বাংলা' }}</a>
-                <a href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener">{{ __('landing.nav.download') }}</a>
-            </div>
-        </div>
-        <div class="container footer-bottom">
-            <span>© {{ now()->year }} E-Tali-Khata. {{ __('landing.footer.rights') }}</span>
-            <span>Developed By <a href="https://creativeitbari.com/" target="_blank" rel="noopener">CreativeITbari</a></span>
-        </div>
-    </footer>
-    @endif
+    @include('partials.site-footer')
 
     <a class="floating-download" href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener" aria-label="{{ __('landing.nav.download') }}">
         <x-landing-icon name="download" size="22"/>
