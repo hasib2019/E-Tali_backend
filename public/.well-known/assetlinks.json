@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.talikhata.app",
+      "sha256_cert_fingerprints": [
+        "71:8D:23:59:91:6B:8A:18:22:D9:BB:CB:87:F3:B1:28:2E:59:BE:11:A7:A1:77:83:56:D2:14:CA:57:4B:9C:A2"
+      ]
+    }
+  }
+]
