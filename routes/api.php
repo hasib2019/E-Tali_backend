@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\LedgerSyncController;
 use App\Http\Controllers\Api\MessController;
 use App\Http\Controllers\Api\MigrationController;
 use App\Http\Controllers\Api\NoteController;
@@ -86,6 +87,12 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::post('/migration/restore-archive', [MigrationController::class, 'restoreArchive']);
     Route::get('/migration/media-manifest', [MigrationController::class, 'mediaManifest']);
     Route::post('/migration/media-batch', [MigrationController::class, 'mediaBatch']);
+
+    // Diamond-tier live sync: the device pushes incremental ledger changes
+    // here. Reachable regardless of the outer lock (mirrors migration's
+    // placement) — the controller does its own active-subscription +
+    // `live_sync` feature check inline, same pattern as restoreArchive.
+    Route::post('/sync/push', [LedgerSyncController::class, 'push']);
 
     /*
     |----------------------------------------------------------------------

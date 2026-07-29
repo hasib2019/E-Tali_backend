@@ -34,6 +34,15 @@ class PackageSeeder extends Seeder
                 'max_businesses' => null,
                 'max_parties' => null,
             ],
+            [
+                // Price/duration are placeholders — set the real numbers before launch.
+                'name' => 'Diamond',
+                'price' => 4999,
+                'duration_days' => 365,
+                'description' => 'Everything in Yearly, plus your ledger stays live-synced to the cloud.',
+                'max_businesses' => null,
+                'max_parties' => null,
+            ],
         ];
 
         foreach ($packages as $package) {

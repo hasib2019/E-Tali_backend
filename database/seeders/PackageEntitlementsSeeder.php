@@ -22,11 +22,13 @@ class PackageEntitlementsSeeder extends Seeder
     {
         $ledger = ['products', 'reports', 'notes', 'tagada'];
         $withBackup = array_merge($ledger, ['backup', 'auto_backup']);
+        $withLiveSync = array_merge($withBackup, ['live_sync']);
 
         $tiers = [
             'Free Trial' => ['max_businesses' => 1, 'allowed_categories' => null, 'features' => $ledger],
             'Monthly' => ['max_businesses' => 10, 'allowed_categories' => null, 'features' => $ledger],
             'Yearly' => ['max_businesses' => null, 'allowed_categories' => null, 'features' => $withBackup],
+            'Diamond' => ['max_businesses' => null, 'allowed_categories' => null, 'features' => $withLiveSync],
         ];
 
         foreach ($tiers as $name => $entitlements) {

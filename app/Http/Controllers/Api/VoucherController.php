@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Party;
 use App\Models\Product;
 use App\Models\Voucher;
+use App\Services\MediaStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,10 +88,10 @@ class VoucherController extends ApiController
 
             $updates = [];
             if (! empty($data['image'])) {
-                $updates['image_path'] = $this->storeBase64($data['image'], $voucher->id, 'image');
+                $updates['image_path'] = MediaStorage::storeBase64($data['image'], "vouchers/{$voucher->id}", 'image');
             }
             if (! empty($data['signature'])) {
-                $updates['signature_path'] = $this->storeBase64($data['signature'], $voucher->id, 'signature');
+                $updates['signature_path'] = MediaStorage::storeBase64($data['signature'], "vouchers/{$voucher->id}", 'signature');
             }
             if ($updates) {
                 $voucher->update($updates);
@@ -163,10 +164,10 @@ class VoucherController extends ApiController
 
             $updates = [];
             if (! empty($data['image'])) {
-                $updates['image_path'] = $this->storeBase64($data['image'], $voucher->id, 'image');
+                $updates['image_path'] = MediaStorage::storeBase64($data['image'], "vouchers/{$voucher->id}", 'image');
             }
             if (! empty($data['signature'])) {
-                $updates['signature_path'] = $this->storeBase64($data['signature'], $voucher->id, 'signature');
+                $updates['signature_path'] = MediaStorage::storeBase64($data['signature'], "vouchers/{$voucher->id}", 'signature');
             }
             if ($updates) {
                 $voucher->update($updates);
@@ -218,25 +219,6 @@ class VoucherController extends ApiController
                 ->where('business_id', $businessId)
                 ->update(['stock' => DB::raw('stock + '.$delta)]);
         }
-    }
-
-    /** Store a base64 data URL to the public disk, return its relative path. */
-    private function storeBase64(string $dataUrl, int $voucherId, string $name): ?string
-    {
-        $ext = 'png';
-        $payload = $dataUrl;
-        if (preg_match('#^data:image/(\w+);base64,#', $dataUrl, $m)) {
-            $ext = strtolower($m[1]) === 'jpeg' ? 'jpg' : strtolower($m[1]);
-            $payload = substr($dataUrl, strpos($dataUrl, ',') + 1);
-        }
-        $binary = base64_decode($payload, true);
-        if ($binary === false) {
-            return null;
-        }
-        $path = "vouchers/{$voucherId}/{$name}.{$ext}";
-        Storage::disk('public')->put($path, $binary);
-
-        return $path;
     }
 
     /**
