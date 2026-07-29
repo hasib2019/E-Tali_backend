@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'price', 'duration_days', 'description', 'max_businesses', 'max_parties', 'allowed_categories', 'features', 'is_active'])]
+#[Fillable(['name', 'price', 'duration_days', 'description', 'show_icon', 'max_businesses', 'max_parties', 'allowed_categories', 'features', 'is_active'])]
 class Package extends Model
 {
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'show_icon' => 'boolean',
             'is_active' => 'boolean',
             'allowed_categories' => 'array',
             'features' => 'array',

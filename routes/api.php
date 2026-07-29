@@ -93,6 +93,7 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     // placement) — the controller does its own active-subscription +
     // `live_sync` feature check inline, same pattern as restoreArchive.
     Route::post('/sync/push', [LedgerSyncController::class, 'push']);
+    Route::get('/sync/pull', [LedgerSyncController::class, 'pull']);
 
     /*
     |----------------------------------------------------------------------

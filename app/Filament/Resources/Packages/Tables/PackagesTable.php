@@ -26,6 +26,9 @@ class PackagesTable
                     ->sortable(),
                 TextColumn::make('description')
                     ->searchable(),
+                IconColumn::make('show_icon')
+                    ->label('Plan icon')
+                    ->boolean(),
                 TextColumn::make('max_businesses')
                     ->numeric()
                     ->sortable(),

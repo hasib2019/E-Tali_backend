@@ -35,7 +35,6 @@ class PackageSeeder extends Seeder
                 'max_parties' => null,
             ],
             [
-                // Price/duration are placeholders — set the real numbers before launch.
                 'name' => 'Diamond',
                 'price' => 4999,
                 'duration_days' => 365,

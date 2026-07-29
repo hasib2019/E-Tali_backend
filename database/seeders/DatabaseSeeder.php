@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             PackageSeeder::class,
+            PackageEntitlementsSeeder::class,
         ]);
 
         // A ready-to-use, verified + subscribed test account for the mobile app.

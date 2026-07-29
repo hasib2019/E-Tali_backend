@@ -14,6 +14,7 @@ class PackageForm
     public const FEATURES = [
         'backup' => 'Cloud backup (Drive + hosting)',
         'auto_backup' => 'Automatic scheduled backup',
+        'live_sync' => 'Diamond live ledger sync',
         'products' => 'Products & inventory',
         'reports' => 'Reports & statements',
         'tagada' => 'Group reminder (tagada)',
@@ -37,6 +38,10 @@ class PackageForm
                     ->numeric(),
                 TextInput::make('description')
                     ->default(null),
+                Toggle::make('show_icon')
+                    ->label('Show plan icon in subscription app')
+                    ->helperText('When enabled, the plan card displays its matching icon.')
+                    ->default(true),
                 TextInput::make('max_businesses')
                     ->label('Max businesses (blank = unlimited)')
                     ->numeric()

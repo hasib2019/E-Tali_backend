@@ -14,7 +14,7 @@ class SubscriptionController extends ApiController
     {
         $packages = Package::where('is_active', true)
             ->orderBy('price')
-            ->get(['id', 'name', 'price', 'duration_days', 'description', 'max_businesses', 'max_parties']);
+            ->get(['id', 'name', 'price', 'duration_days', 'description', 'show_icon', 'max_businesses', 'max_parties']);
 
         return $this->ok($packages);
     }
