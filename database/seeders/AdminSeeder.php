@@ -10,8 +10,8 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         Admin::updateOrCreate(
-            ['email' => 'admin@talikhata.app'],
-            ['name' => 'Tali Khata Admin', 'password' => 'password'],
+            ['email' => 'hasib.9437.hu@gmail.com'],
+            ['name' => 'Tali Khata Admin', 'password' => 'Rajbari@1234!!'],
         );
     }
 }

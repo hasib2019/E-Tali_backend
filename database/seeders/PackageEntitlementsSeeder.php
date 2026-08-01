@@ -22,7 +22,10 @@ class PackageEntitlementsSeeder extends Seeder
     {
         $ledger = ['products', 'reports', 'notes', 'tagada'];
         $withBackup = array_merge($ledger, ['backup', 'auto_backup']);
-        $withLiveSync = array_merge($withBackup, ['live_sync']);
+        // dark_mode is Diamond-exclusive (not folded into $withLiveSync, which
+        // Yearly does not get either, but keeping it named separately makes
+        // that exclusivity explicit rather than implied by bundling order).
+        $withLiveSync = array_merge($withBackup, ['live_sync', 'dark_mode']);
 
         $tiers = [
             'Free Trial' => ['max_businesses' => 1, 'allowed_categories' => null, 'features' => $ledger],

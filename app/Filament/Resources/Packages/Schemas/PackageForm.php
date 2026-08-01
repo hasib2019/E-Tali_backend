@@ -15,6 +15,7 @@ class PackageForm
         'backup' => 'Cloud backup (Drive + hosting)',
         'auto_backup' => 'Automatic scheduled backup',
         'live_sync' => 'Diamond live ledger sync',
+        'dark_mode' => 'Dark mode (theme switcher)',
         'products' => 'Products & inventory',
         'reports' => 'Reports & statements',
         'tagada' => 'Group reminder (tagada)',
