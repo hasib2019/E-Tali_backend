@@ -76,8 +76,10 @@ class FeeController extends ApiController
     }
 
     /**
-     * Record (or update) a student's fee for a month. Creates a matching
-     * cash-in entry so the money also shows up in the cashbook/income.
+     * Collect a fee installment for a member/month. `amount` is what is being
+     * paid now — it ADDS to any earlier partial payment for the same month
+     * (so paying 5000 then 3000 gives a total of 8000, not 3000). Keeps a single
+     * matching cash-in entry in sync with the running total.
      */
     public function store(Request $request, Business $business): JsonResponse
     {
@@ -86,7 +88,7 @@ class FeeController extends ApiController
         $data = $request->validate([
             'party_id' => ['required', 'integer', 'exists:parties,id'],
             'period' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
-            'amount' => ['required', 'numeric', 'min:0'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
         ]);
 
         $student = Party::findOrFail($data['party_id']);
@@ -100,16 +102,18 @@ class FeeController extends ApiController
                 ->where('period', $data['period'])
                 ->first();
 
+            // Accumulate onto the earlier partial payment for this month.
+            $total = round(($existing ? (float) $existing->amount : 0) + (float) $data['amount'], 2);
             $note = "{$label} {$data['period']} · {$student->name}";
 
             if ($existing && $existing->cashbook_entry_id) {
-                $existing->cashbookEntry?->update(['amount' => $data['amount'], 'note' => $note]);
+                $existing->cashbookEntry?->update(['amount' => $total, 'note' => $note]);
                 $entryId = $existing->cashbook_entry_id;
             } else {
                 $entry = $business->cashbookEntries()->create([
                     'user_id' => $request->user()->id,
                     'type' => 'cash_in',
-                    'amount' => $data['amount'],
+                    'amount' => $total,
                     'category' => $label,
                     'note' => $note,
                     'entry_date' => now()->toDateString(),
@@ -119,7 +123,7 @@ class FeeController extends ApiController
 
             return $business->feePayments()->updateOrCreate(
                 ['party_id' => $student->id, 'period' => $data['period']],
-                ['amount' => $data['amount'], 'paid_at' => now()->toDateString(), 'cashbook_entry_id' => $entryId],
+                ['amount' => $total, 'paid_at' => now()->toDateString(), 'cashbook_entry_id' => $entryId],
             );
         });
 

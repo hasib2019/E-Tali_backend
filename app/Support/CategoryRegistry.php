@@ -19,6 +19,7 @@ class CategoryRegistry
     public const RIDER = 'rider';
     public const LANDLORD = 'landlord';
     public const SAMITY = 'samity';
+    public const MESS = 'mess';
 
     public const DEFAULT = self::BUSINESS;
 
@@ -33,6 +34,7 @@ class CategoryRegistry
         self::RIDER,
         self::LANDLORD,
         self::SAMITY,
+        self::MESS,
     ];
 
     public static function isValid(?string $category): bool

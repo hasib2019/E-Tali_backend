@@ -86,4 +86,14 @@ class Business extends Model
     {
         return $this->hasMany(Note::class);
     }
+
+    public function meals(): HasMany
+    {
+        return $this->hasMany(Meal::class);
+    }
+
+    public function messEntries(): HasMany
+    {
+        return $this->hasMany(MessEntry::class);
+    }
 }

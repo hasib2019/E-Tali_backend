@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\MessController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\SalaryController;
@@ -125,6 +126,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Salary / allowance (personal)
         Route::post('businesses/{business}/salary', [SalaryController::class, 'add']);
+
+        // Mess / hostel manager
+        Route::get('businesses/{business}/mess/sheet', [MessController::class, 'sheet']);
+        Route::get('businesses/{business}/mess/entries', [MessController::class, 'entries']);
+        Route::post('businesses/{business}/mess/meal', [MessController::class, 'setMeal']);
+        Route::post('businesses/{business}/mess/deposit', [MessController::class, 'deposit']);
+        Route::post('businesses/{business}/mess/bazar', [MessController::class, 'bazar']);
+        Route::delete('mess/entries/{messEntry}', [MessController::class, 'removeEntry']);
 
         // Business notes (ব্যবসার নোট)
         Route::get('businesses/{business}/notes', [NoteController::class, 'index']);

@@ -40,6 +40,8 @@ class BackupService
             'businesses.batches',
             'businesses.feePayments',
             'businesses.attendances',
+            'businesses.meals',
+            'businesses.messEntries',
         ]);
 
         $businesses = $user->businesses->map(fn (Business $b) => [
@@ -140,6 +142,19 @@ class BackupService
                 'date' => $a->date?->toDateString(),
                 'status' => $a->status,
             ])->values(),
+            'meals' => $b->meals->map(fn ($m) => [
+                'party_id' => $m->party_id,                  // original party id
+                'period' => $m->period,
+                'count' => $m->count,
+            ])->values(),
+            'mess_entries' => $b->messEntries->map(fn ($e) => [
+                'party_id' => $e->party_id,                  // original party id (nullable)
+                'period' => $e->period,
+                'kind' => $e->kind,
+                'amount' => $e->amount,
+                'entry_date' => $e->entry_date?->toDateString(),
+                'note' => $e->note,
+            ])->values(),
         ])->values();
 
         return [
@@ -175,6 +190,7 @@ class BackupService
             'vouchers' => 0, 'voucher_items' => 0, 'cashbook_entries' => 0,
             'cash_categories' => 0, 'budgets' => 0, 'savings_goals' => 0,
             'reminders' => 0, 'batches' => 0, 'fee_payments' => 0, 'attendances' => 0,
+            'meals' => 0, 'mess_entries' => 0,
         ];
 
         DB::transaction(function () use ($user, $data, $mode, &$counts) {
@@ -375,6 +391,36 @@ class BackupService
                         'status' => $a['status'] ?? 'present',
                     ]);
                     $counts['attendances']++;
+                }
+
+                // Mess meals — relink member.
+                foreach ($b['meals'] ?? [] as $ml) {
+                    $partyId = isset($ml['party_id']) ? ($partyMap[$ml['party_id']] ?? null) : null;
+                    if ($partyId === null || empty($ml['period'])) {
+                        continue;
+                    }
+                    $business->meals()->create([
+                        'party_id' => $partyId,
+                        'period' => $ml['period'],
+                        'count' => $ml['count'] ?? 0,
+                    ]);
+                    $counts['meals']++;
+                }
+
+                // Mess deposits / bazar — relink member (null = fund).
+                foreach ($b['mess_entries'] ?? [] as $me) {
+                    if (empty($me['period']) || empty($me['kind'])) {
+                        continue;
+                    }
+                    $business->messEntries()->create([
+                        'party_id' => isset($me['party_id']) ? ($partyMap[$me['party_id']] ?? null) : null,
+                        'period' => $me['period'],
+                        'kind' => $me['kind'],
+                        'amount' => $me['amount'] ?? 0,
+                        'entry_date' => $me['entry_date'] ?? now()->toDateString(),
+                        'note' => $me['note'] ?? null,
+                    ]);
+                    $counts['mess_entries']++;
                 }
             }
         });
