@@ -88,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Party transactions (দিলাম / পেলাম)
         Route::get('parties/{party}/transactions', [TransactionController::class, 'index']);
         Route::post('parties/{party}/transactions', [TransactionController::class, 'store']);
+        Route::get('transactions/{transaction}', [TransactionController::class, 'show']);
         Route::put('transactions/{transaction}', [TransactionController::class, 'update']);
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy']);
 

@@ -20,6 +20,12 @@ class CategoryRegistry
     public const LANDLORD = 'landlord';
     public const SAMITY = 'samity';
     public const MESS = 'mess';
+    public const FREELANCER = 'freelancer';
+    public const LABORER = 'laborer';
+    public const ISP = 'isp';
+    public const CABLE = 'cable';
+    public const COACHING = 'coaching';
+    public const GYM = 'gym';
 
     public const DEFAULT = self::BUSINESS;
 
@@ -35,6 +41,12 @@ class CategoryRegistry
         self::LANDLORD,
         self::SAMITY,
         self::MESS,
+        self::FREELANCER,
+        self::LABORER,
+        self::ISP,
+        self::CABLE,
+        self::COACHING,
+        self::GYM,
     ];
 
     public static function isValid(?string $category): bool
@@ -45,13 +57,19 @@ class CategoryRegistry
     /** Personal-finance categories share the single-balance model. */
     public static function isPersonal(?string $category): bool
     {
-        return in_array($category, [self::SALARIED, self::STUDENT, self::HOMEMAKER, self::EXPAT, self::RIDER], true);
+        return in_array($category, [
+            self::SALARIED, self::STUDENT, self::HOMEMAKER, self::EXPAT, self::RIDER,
+            self::FREELANCER, self::LABORER,
+        ], true);
     }
 
     /** Collection categories reuse the teacher fee-collection model. */
     public static function isCollection(?string $category): bool
     {
-        return in_array($category, [self::TEACHER, self::LANDLORD, self::SAMITY], true);
+        return in_array($category, [
+            self::TEACHER, self::LANDLORD, self::SAMITY,
+            self::ISP, self::CABLE, self::COACHING, self::GYM,
+        ], true);
     }
 
     /** Income category label used when adding salary/allowance/income. */
@@ -59,7 +77,7 @@ class CategoryRegistry
     {
         return match ($category) {
             self::STUDENT => 'Allowance',
-            self::HOMEMAKER, self::RIDER => 'Income',
+            self::HOMEMAKER, self::RIDER, self::FREELANCER, self::LABORER => 'Income',
             default => 'Salary',
         };
     }
@@ -70,6 +88,9 @@ class CategoryRegistry
         return match ($category) {
             self::LANDLORD => 'House rent',
             self::SAMITY => 'Subscription',
+            self::ISP => 'Internet bill',
+            self::CABLE => 'Cable bill',
+            self::GYM => 'Membership fee',
             default => 'Tuition fee',
         };
     }
@@ -195,6 +216,77 @@ class CategoryRegistry
                     ['name' => 'Program', 'icon' => 'calendar'],
                     ['name' => 'Charity', 'icon' => 'gift'],
                     ['name' => 'Office', 'icon' => 'briefcase'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::FREELANCER => [
+                'in' => [
+                    ['name' => 'Client payment', 'icon' => 'cash'],
+                    ['name' => 'Bonus', 'icon' => 'gift'],
+                    ['name' => 'Other income', 'icon' => 'add-circle'],
+                ],
+                'out' => [
+                    ['name' => 'Internet', 'icon' => 'wifi'],
+                    ['name' => 'Software', 'icon' => 'laptop'],
+                    ['name' => 'Transport', 'icon' => 'bus'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::LABORER => [
+                'in' => [
+                    ['name' => 'Wage', 'icon' => 'cash'],
+                    ['name' => 'Bonus', 'icon' => 'gift'],
+                ],
+                'out' => [
+                    ['name' => 'Food', 'icon' => 'fast-food'],
+                    ['name' => 'Transport', 'icon' => 'bus'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::ISP => [
+                'in' => [
+                    ['name' => 'Internet bill', 'icon' => 'wifi'],
+                    ['name' => 'Other income', 'icon' => 'add-circle'],
+                ],
+                'out' => [
+                    ['name' => 'Bandwidth', 'icon' => 'globe'],
+                    ['name' => 'Equipment', 'icon' => 'hardware-chip'],
+                    ['name' => 'Salary', 'icon' => 'people'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::CABLE => [
+                'in' => [
+                    ['name' => 'Cable bill', 'icon' => 'tv'],
+                    ['name' => 'Other income', 'icon' => 'add-circle'],
+                ],
+                'out' => [
+                    ['name' => 'Equipment', 'icon' => 'hardware-chip'],
+                    ['name' => 'Salary', 'icon' => 'people'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::COACHING => [
+                'in' => [
+                    ['name' => 'Tuition fee', 'icon' => 'school'],
+                    ['name' => 'Other income', 'icon' => 'add-circle'],
+                ],
+                'out' => [
+                    ['name' => 'Rent', 'icon' => 'home'],
+                    ['name' => 'Salary', 'icon' => 'people'],
+                    ['name' => 'Materials', 'icon' => 'documents'],
+                    ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
+                ],
+            ],
+            self::GYM => [
+                'in' => [
+                    ['name' => 'Membership fee', 'icon' => 'barbell'],
+                    ['name' => 'Other income', 'icon' => 'add-circle'],
+                ],
+                'out' => [
+                    ['name' => 'Rent', 'icon' => 'home'],
+                    ['name' => 'Equipment', 'icon' => 'barbell'],
+                    ['name' => 'Salary', 'icon' => 'people'],
                     ['name' => 'Others', 'icon' => 'ellipsis-horizontal'],
                 ],
             ],
