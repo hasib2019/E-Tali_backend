@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
@@ -7,8 +8,10 @@ use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\CashbookController;
 use App\Http\Controllers\Api\CashCategoryController;
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MessController;
@@ -39,7 +42,7 @@ Route::get('/packages', [SubscriptionController::class, 'packages']);
 | Protected routes (Sanctum token required)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\TouchLastActive::class])->group(function () {
     // Auth / account (always reachable, even while locked, so the app can
     // read state and drive the verify / renew / logout flows).
     Route::get('/me', [AuthController::class, 'me']);
@@ -49,6 +52,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1');
     Route::get('/email/status', [EmailVerificationController::class, 'status']);
+
+    /*
+    |----------------------------------------------------------------------
+    | Push devices, in-app notification inbox, usage analytics.
+    | Reachable regardless of subscription lock so pushes/tracking keep
+    | working (and a locked user still sees "renew" notifications).
+    |----------------------------------------------------------------------
+    */
+    Route::post('/devices', [DeviceTokenController::class, 'store']);
+    Route::delete('/devices', [DeviceTokenController::class, 'destroy']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('/notifications/{userNotification}/read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/{userNotification}/opened', [NotificationController::class, 'opened']);
+
+    Route::post('/analytics/events', [AnalyticsController::class, 'store']);
 
     /*
     |----------------------------------------------------------------------
