@@ -17,6 +17,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mobile App Play Store URL
+    |--------------------------------------------------------------------------
+    | Shown on the web "install the app" gateway. Owner-configurable via .env.
+    */
+    'play_store_url' => env('APP_PLAY_STORE_URL', 'https://play.google.com/store/apps/details?id=com.talikhata.app'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

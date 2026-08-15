@@ -111,6 +111,11 @@ class AuthController extends ApiController
             'last_backup_at' => $user->last_backup_at?->toIso8601String(),
             'drive_connected' => Schema::hasTable('google_drive_credentials')
                 && $user->driveCredential()->exists(),
+            // Backend-authoritative entitlements the app caches + enforces offline.
+            'entitlements' => $user->package
+                ? $user->package->entitlements()
+                : ['max_businesses' => 1, 'max_parties' => null, 'allowed_categories' => null, 'features' => []],
+            'play_store_url' => config('app.play_store_url'),
         ];
     }
 }

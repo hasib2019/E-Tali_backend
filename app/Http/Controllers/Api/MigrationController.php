@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\HandlesMedia;
 use App\Models\DeviceMigration;
 use App\Services\MigrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One-time server→device migration for existing users. Two-phase and safe:
@@ -14,6 +16,10 @@ use Illuminate\Http\Request;
  */
 class MigrationController extends ApiController
 {
+    use HandlesMedia;
+
+    private const MEDIA_TABLES = ['transactions', 'vouchers', 'cashbook_entries'];
+
     /**
      * Where this user stands:
      *  - done           → already migrated (device should read SQLite)
@@ -87,5 +93,50 @@ class MigrationController extends ApiController
         ]);
 
         return $this->ok(['state' => 'done']);
+    }
+
+    /**
+     * Media-sync (separate track): which of the user's records carry a
+     * photo/signature. Returns just the ids (no bytes) so the device can then
+     * pull them in small batches. {transactions: [id…], vouchers: […], …}.
+     */
+    public function mediaManifest(Request $request): JsonResponse
+    {
+        $businessIds = $request->user()->businesses()->pluck('id');
+
+        $manifest = [];
+        foreach (self::MEDIA_TABLES as $table) {
+            $manifest[$table] = DB::table($table)
+                ->whereIn('business_id', $businessIds)
+                ->where(fn ($q) => $q->whereNotNull('image_path')->orWhereNotNull('signature_path'))
+                ->orderBy('id')
+                ->pluck('id');
+        }
+
+        return $this->ok($manifest);
+    }
+
+    /** Return the media (as data URIs) for a small batch of record ids. */
+    public function mediaBatch(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'table' => ['required', 'in:transactions,vouchers,cashbook_entries'],
+            'ids' => ['required', 'array', 'max:20'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $businessIds = $request->user()->businesses()->pluck('id');
+        $rows = DB::table($data['table'])
+            ->whereIn('business_id', $businessIds)
+            ->whereIn('id', $data['ids'])
+            ->get(['id', 'image_path', 'signature_path']);
+
+        $items = $rows->map(fn ($r) => [
+            'id' => $r->id,
+            'image' => $this->mediaDataUri($r->image_path),
+            'signature' => $this->mediaDataUri($r->signature_path),
+        ]);
+
+        return $this->ok($items);
     }
 }

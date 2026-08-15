@@ -4,6 +4,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Backup master key (owner-escrow)
+    |--------------------------------------------------------------------------
+    | Base64-encoded 256-bit key the app uses to encrypt/decrypt device backups.
+    | Generate: base64_encode(random_bytes(32)). Keep it secret + backed up — if
+    | lost, existing encrypted backups become unrecoverable.
+    */
+    'backup_key' => env('BACKUP_MASTER_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
     |

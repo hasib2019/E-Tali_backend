@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupVaultController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\BusinessController;
@@ -77,6 +78,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\TouchLastActive::class])
     Route::get('/migration/status', [MigrationController::class, 'status']);
     Route::post('/migration/export', [MigrationController::class, 'export']);
     Route::post('/migration/confirm', [MigrationController::class, 'confirm']);
+    Route::get('/migration/media-manifest', [MigrationController::class, 'mediaManifest']);
+    Route::post('/migration/media-batch', [MigrationController::class, 'mediaBatch']);
 
     /*
     |----------------------------------------------------------------------
@@ -95,6 +98,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\TouchLastActive::class])
         Route::get('/backups/export', [DriveBackupController::class, 'export']);
         Route::put('/backups/schedule', [DriveBackupController::class, 'schedule']);
         Route::post('/backups/restore', [DriveBackupController::class, 'restore']);
+
+        // Encrypted device-backup vault. Key/list/download stay reachable while
+        // expired so a locked user can still RESTORE/rescue their own data.
+        Route::get('/backup/key', [BackupVaultController::class, 'key']);
+        Route::get('/backup/list', [BackupVaultController::class, 'list']);
+        Route::get('/backup/{encryptedBackup}/download', [BackupVaultController::class, 'download']);
+        // Uploading a new backup (owner-storage cost) is premium-gated in the controller.
+        Route::post('/backup/upload', [BackupVaultController::class, 'upload']);
     });
 
     /*
