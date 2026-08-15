@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MessController;
+use App\Http\Controllers\Api\MigrationController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\SalaryController;
@@ -70,6 +71,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\TouchLastActive::class])
     Route::post('/notifications/{userNotification}/opened', [NotificationController::class, 'opened']);
 
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
+
+    // One-time server→device migration (reachable regardless of lock so users
+    // can always pull their data down; nothing is deleted server-side).
+    Route::get('/migration/status', [MigrationController::class, 'status']);
+    Route::post('/migration/export', [MigrationController::class, 'export']);
+    Route::post('/migration/confirm', [MigrationController::class, 'confirm']);
 
     /*
     |----------------------------------------------------------------------
