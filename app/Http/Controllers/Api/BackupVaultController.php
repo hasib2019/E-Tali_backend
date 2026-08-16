@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\EncryptedBackup;
+use App\Services\GoogleDriveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -24,7 +25,7 @@ class BackupVaultController extends ApiController
     }
 
     /** Store an encrypted backup blob + track it (idempotent on backup_uuid). */
-    public function upload(Request $request): JsonResponse
+    public function upload(Request $request, GoogleDriveService $drive): JsonResponse
     {
         $data = $request->validate([
             'backup_uuid' => ['required', 'uuid'],
@@ -55,9 +56,22 @@ class BackupVaultController extends ApiController
             ],
         );
 
+        // Best-effort: also push the same encrypted copy to the user's own Google
+        // Drive (if connected). A Drive failure never fails the hosting backup.
+        if (empty($record->drive_file_id) && $user->driveCredential()->exists()) {
+            try {
+                $result = $drive->uploadJson($user, $record->file_name, $data['container']);
+                if (! empty($result['id'])) {
+                    $record->update(['drive_file_id' => $result['id']]);
+                }
+            } catch (\Throwable $e) {
+                report($e); // hosting copy already succeeded
+            }
+        }
+
         $user->forceFill(['last_backup_at' => now()])->saveQuietly();
 
-        return $this->ok($this->present($record), 'Backup stored.', 201);
+        return $this->ok($this->present($record->fresh()), 'Backup stored.', 201);
     }
 
     /** The user's tracked backups, newest first. */
