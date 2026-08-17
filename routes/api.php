@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\CashbookController;
 use App\Http\Controllers\Api\CashCategoryController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\DonationController;
 use App\Http\Controllers\Api\DriveBackupController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FeeController;
@@ -76,6 +77,11 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::post('/notifications/{userNotification}/opened', [NotificationController::class, 'opened']);
 
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
+
+    // "Support us" — honor-based bKash donation, open to every user (free or
+    // paid, even locked) regardless of subscription status.
+    Route::get('/donation/tiers', [DonationController::class, 'tiers']);
+    Route::post('/donations', [DonationController::class, 'store']);
 
     // One-time server→device migration (reachable regardless of lock so users
     // can always pull their data down). `confirm` archives the ledger to disk
