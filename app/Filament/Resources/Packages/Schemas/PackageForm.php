@@ -14,6 +14,7 @@ class PackageForm
     public const FEATURES = [
         'backup' => 'Cloud backup (Drive + hosting)',
         'auto_backup' => 'Automatic scheduled backup',
+        'restore_from_file' => 'Restore from a backup file (device/Google Drive)',
         'live_sync' => 'Diamond live ledger sync',
         'dark_mode' => 'Dark mode (theme switcher)',
         'products' => 'Products & inventory',

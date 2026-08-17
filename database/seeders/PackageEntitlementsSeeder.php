@@ -21,7 +21,9 @@ class PackageEntitlementsSeeder extends Seeder
     public function run(): void
     {
         $ledger = ['products', 'reports', 'notes', 'tagada'];
-        $withBackup = array_merge($ledger, ['backup', 'auto_backup']);
+        // restore_from_file is independent of backup (toggled separately per
+        // package in the Filament admin) but defaults to the same tiers here.
+        $withBackup = array_merge($ledger, ['backup', 'auto_backup', 'restore_from_file']);
         // dark_mode is Diamond-exclusive (not folded into $withLiveSync, which
         // Yearly does not get either, but keeping it named separately makes
         // that exclusivity explicit rather than implied by bundling order).
