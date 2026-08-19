@@ -26,6 +26,10 @@ class UserForm
                     ->label('Active')
                     ->helperText('Turning this off immediately locks the user out of the app.')
                     ->default(true),
+                Toggle::make('web_access')
+                    ->label('Allow web login')
+                    ->helperText('Off by default. Without this, logging in on the web build shows a "use the mobile app" screen instead of the app.')
+                    ->default(false),
                 TextInput::make('provider')
                     ->disabled()
                     ->dehydrated(false),

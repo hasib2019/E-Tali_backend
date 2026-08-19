@@ -170,6 +170,7 @@ class AuthController extends ApiController
             'provider' => $user->provider,
             'email_verified' => $user->hasVerifiedEmail(),
             'is_active' => (bool) $user->is_active,
+            'web_access' => (bool) $user->web_access,
             'package' => $user->package,
             'subscription_status' => $user->subscription_status,
             'subscription_expires_at' => $user->subscription_expires_at?->toIso8601String(),

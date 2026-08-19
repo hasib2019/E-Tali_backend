@@ -35,6 +35,9 @@ class UsersTable
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
+                IconColumn::make('web_access')
+                    ->label('Web')
+                    ->boolean(),
                 IconColumn::make('email_verified_at')
                     ->label('Verified')
                     ->boolean(),
@@ -70,6 +73,7 @@ class UsersTable
             ])
             ->filters([
                 TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('web_access')->label('Web access'),
                 SelectFilter::make('subscription_status')
                     ->options([
                         'none' => 'None',

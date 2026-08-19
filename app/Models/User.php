@@ -19,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
     'is_active', 'provider', 'google_id', 'avatar',
     'package_id', 'subscription_status', 'subscribed_at', 'subscription_expires_at', 'is_paid',
     'backup_frequency', 'last_backup_at', 'last_active_at', 'last_screen', 'migrated_at',
+    'web_access',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -38,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_paid' => 'boolean',
+            'web_access' => 'boolean',
             'subscribed_at' => 'datetime',
             'subscription_expires_at' => 'datetime',
             'last_backup_at' => 'datetime',

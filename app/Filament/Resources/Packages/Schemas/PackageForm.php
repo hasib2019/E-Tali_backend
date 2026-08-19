@@ -15,6 +15,7 @@ class PackageForm
         'backup' => 'Cloud backup (Drive + hosting)',
         'auto_backup' => 'Automatic scheduled backup',
         'restore_from_file' => 'Restore from a backup file (device/Google Drive)',
+        'web_access' => 'Web login (use the app in a browser)',
         'live_sync' => 'Diamond live ledger sync',
         'dark_mode' => 'Dark mode (theme switcher)',
         'products' => 'Products & inventory',
