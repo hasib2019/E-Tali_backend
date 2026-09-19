@@ -39,7 +39,10 @@ class UsersTable
                     ->label('Web')
                     ->boolean(),
                 IconColumn::make('email_verified_at')
-                    ->label('Verified')
+                    ->label('Email verified')
+                    ->boolean(),
+                IconColumn::make('phone_verified_at')
+                    ->label('Phone verified')
                     ->boolean(),
                 TextColumn::make('provider')
                     ->badge()

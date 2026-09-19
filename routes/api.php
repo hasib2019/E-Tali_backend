@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\AppFeedbackController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupVaultController;
@@ -21,11 +22,14 @@ use App\Http\Controllers\Api\MigrationController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PartyController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\PhoneVerificationController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
+use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\VoucherController;
@@ -41,6 +45,19 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/google', [GoogleAuthController::class, 'login']);
 Route::get('/packages', [SubscriptionController::class, 'packages']);
+
+// Forgot password — code delivered over email or SMS, then exchanged for a
+// new password. Throttled: these are unauthenticated and send real messages.
+Route::post('/password/forgot', [PasswordResetController::class, 'forgot'])
+    ->middleware('throttle:5,1');
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])
+    ->middleware('throttle:10,1');
+
+// Qolek's delivery-status callback — called by Qolek's servers, not the app,
+// so it's outside auth:sanctum. The {token} path segment is the shared
+// secret (QOLEK_WEBHOOK_SECRET) that stands in for a documented signature
+// scheme we don't have from Qolek.
+Route::post('/webhooks/sms/qolek/{token}', [SmsWebhookController::class, 'qolek']);
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +77,13 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
         ->middleware('throttle:6,1');
     Route::get('/email/status', [EmailVerificationController::class, 'status']);
 
+    // Phone (SMS OTP) verification (reachable while unverified so the app can drive the flow).
+    Route::post('/phone/send-otp', [PhoneVerificationController::class, 'send'])
+        ->middleware('throttle:6,1');
+    Route::post('/phone/verify-otp', [PhoneVerificationController::class, 'verify'])
+        ->middleware('throttle:10,1');
+    Route::get('/phone/status', [PhoneVerificationController::class, 'status']);
+
     /*
     |----------------------------------------------------------------------
     | Push devices, in-app notification inbox, usage analytics.
@@ -77,6 +101,11 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::post('/notifications/{userNotification}/opened', [NotificationController::class, 'opened']);
 
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
+
+    // App feedback — reachable regardless of subscription lock; a user whose
+    // plan lapsed is exactly the person we want to hear from.
+    Route::post('/feedback', [AppFeedbackController::class, 'store'])
+        ->middleware('throttle:10,1');
 
     // "Support us" — honor-based bKash donation, open to every user (free or
     // paid, even locked) regardless of subscription status.

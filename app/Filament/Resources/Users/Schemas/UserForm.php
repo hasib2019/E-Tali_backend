@@ -22,6 +22,11 @@ class UserForm
                     ->required(),
                 TextInput::make('phone')
                     ->tel(),
+                Select::make('verification_method')
+                    ->label('Verification method')
+                    ->options(['email' => 'Email', 'phone' => 'Phone (SMS OTP)'])
+                    ->default('email')
+                    ->required(),
                 Toggle::make('is_active')
                     ->label('Active')
                     ->helperText('Turning this off immediately locks the user out of the app.')
@@ -36,6 +41,9 @@ class UserForm
                 DateTimePicker::make('email_verified_at')
                     ->label('Email verified at')
                     ->helperText('Set a date to mark the email as verified; clear to require verification.'),
+                DateTimePicker::make('phone_verified_at')
+                    ->label('Phone verified at')
+                    ->helperText('Set a date to mark the phone as verified; clear to require verification.'),
                 TextInput::make('password')
                     ->label('Set new password')
                     ->password()

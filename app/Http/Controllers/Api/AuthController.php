@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\HandlesMedia;
 use App\Models\User;
+use App\Services\PhoneOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends ApiController
@@ -19,20 +21,38 @@ class AuthController extends ApiController
      */
     public function register(Request $request): JsonResponse
     {
+        // Normalize before validating: the uniqueness + format checks below
+        // must see the same shape we're about to store, or two spellings of
+        // the same number (01712345678 vs +8801712345678) both pass "unique"
+        // and collide at insert time instead of failing validation cleanly.
+        $rawPhone = $request->input('phone');
+        if (is_string($rawPhone) && $rawPhone !== '') {
+            $request->merge(['phone' => $this->normalizeBdPhone($rawPhone)]);
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => [
+                'required', 'string',
+                'regex:/^8801[3-9]\d{8}$/', // normalized Bangladeshi mobile number
+                'unique:users,phone',
+            ],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'verification_method' => ['required', 'in:email,phone'],
         ]);
 
         $user = User::create($data);
         $user->refresh(); // hydrate DB defaults (is_active=true, provider='email', ...)
 
-        // Don't let a mail-server hiccup fail the registration — the user is
-        // created and can trigger "resend" from the verify screen.
+        // Don't let a mail/SMS hiccup fail the registration — the user is
+        // created either way and can trigger "resend" from the verify screen.
         try {
-            $user->sendEmailVerificationNotification();
+            if ($user->verification_method === 'phone') {
+                app(PhoneOtpService::class)->send($user);
+            } else {
+                $user->sendEmailVerificationNotification();
+            }
         } catch (\Throwable $e) {
             report($e);
         }
@@ -42,7 +62,28 @@ class AuthController extends ApiController
         return $this->ok([
             'user' => $this->userPayload($user),
             'token' => $token,
-        ], 'Registration successful. Please verify your email.', 201);
+        ], $user->verification_method === 'phone'
+            ? 'Registration successful. Please verify your phone number.'
+            : 'Registration successful. Please verify your email.', 201);
+    }
+
+    /**
+     * Normalize a Bangladeshi mobile number to the gateway's expected shape
+     * (880XXXXXXXXXX, no leading +/0) so storage + SMS sending always agree.
+     */
+    private function normalizeBdPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        if (str_starts_with($digits, '880')) {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, '0')) {
+            return '880'.substr($digits, 1);
+        }
+
+        return '880'.$digits;
     }
 
     /**
@@ -84,14 +125,30 @@ class AuthController extends ApiController
      */
     public function updateProfile(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        $rawPhone = $request->input('phone');
+        if (is_string($rawPhone) && $rawPhone !== '') {
+            $request->merge(['phone' => $this->normalizeBdPhone($rawPhone)]);
+        }
+
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'phone' => [
+                'sometimes', 'nullable', 'string',
+                'regex:/^8801[3-9]\d{8}$/',
+                Rule::unique('users', 'phone')->ignore($user->id),
+            ],
             'avatar' => ['sometimes', 'nullable', 'string', 'max:5000000'],
         ]);
 
-        $user = $request->user();
         $updates = collect($data)->only(['name', 'phone'])->all();
+
+        // Changing the phone invalidates any prior OTP verification — the new
+        // number hasn't been proven yet, even if the old one was.
+        if (array_key_exists('phone', $updates) && $updates['phone'] !== $user->phone) {
+            $updates['phone_verified_at'] = null;
+        }
 
         if (array_key_exists('avatar', $data)) {
             $oldAvatar = $user->avatar;
@@ -168,7 +225,9 @@ class AuthController extends ApiController
             'phone' => $user->phone,
             'avatar' => $avatar,
             'provider' => $user->provider,
+            'verification_method' => $user->verification_method,
             'email_verified' => $user->hasVerifiedEmail(),
+            'phone_verified' => $user->hasVerifiedPhone(),
             'is_active' => (bool) $user->is_active,
             'web_access' => (bool) $user->web_access,
             'package' => $user->package,

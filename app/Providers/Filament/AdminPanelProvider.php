@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Widgets\CategoryStatsWidget;
 use App\Filament\Widgets\EngagementStatsWidget;
 use App\Filament\Widgets\TopPagesWidget;
+use App\Filament\Widgets\UserRegistrationsChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -46,6 +47,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 EngagementStatsWidget::class,
+                UserRegistrationsChart::class,
                 CategoryStatsWidget::class,
                 TopPagesWidget::class,
                 FilamentInfoWidget::class,

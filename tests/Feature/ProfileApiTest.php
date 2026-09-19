@@ -32,11 +32,12 @@ class ProfileApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('data.name', 'Updated User')
-            ->assertJsonPath('data.phone', '01700000000');
+            // Normalized to the SMS gateway's shape (880 + national number).
+            ->assertJsonPath('data.phone', '8801700000000');
 
         $user->refresh();
         $this->assertSame('Updated User', $user->name);
-        $this->assertSame('01700000000', $user->phone);
+        $this->assertSame('8801700000000', $user->phone);
         $this->assertNotNull($user->avatar);
         Storage::disk('public')->assertExists($user->avatar);
     }

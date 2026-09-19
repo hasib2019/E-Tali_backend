@@ -16,6 +16,8 @@ class EngagementStatsWidget extends StatsOverviewWidget
 {
     protected function getStats(): array
     {
+        $totalUsers = User::count();
+        $newThisMonth = User::where('created_at', '>=', now()->startOfMonth())->count();
         $activeToday = User::where('last_active_at', '>=', now()->startOfDay())->count();
         $active7 = User::where('last_active_at', '>=', now()->subDays(7))->count();
         $active30 = User::where('last_active_at', '>=', now()->subDays(30))->count();
@@ -23,6 +25,9 @@ class EngagementStatsWidget extends StatsOverviewWidget
         $views7 = AnalyticsEvent::where('occurred_at', '>=', now()->subDays(7))->count();
 
         return [
+            Stat::make('Registered users', number_format($totalUsers))
+                ->description("{$newThisMonth} new this month")
+                ->icon('heroicon-o-user-plus')->color('success'),
             Stat::make('Active today', (string) $activeToday)
                 ->icon('heroicon-o-bolt')->color('success'),
             Stat::make('Active (7 days)', (string) $active7)

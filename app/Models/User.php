@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
-    'name', 'email', 'phone', 'password', 'email_verified_at',
+    'name', 'email', 'phone', 'verification_method', 'password', 'email_verified_at', 'phone_verified_at',
     'is_active', 'provider', 'google_id', 'avatar',
     'package_id', 'subscription_status', 'subscribed_at', 'subscription_expires_at', 'is_paid',
     'backup_frequency', 'last_backup_at', 'last_active_at', 'last_screen', 'migrated_at',
@@ -36,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_paid' => 'boolean',
@@ -54,6 +55,30 @@ class User extends Authenticatable implements MustVerifyEmail
     public function deviceTokens(): HasMany
     {
         return $this->hasMany(DeviceToken::class);
+    }
+
+    /**
+     * SMS OTP codes issued for this user (phone verification, etc.).
+     */
+    public function phoneOtps(): HasMany
+    {
+        return $this->hasMany(PhoneOtp::class);
+    }
+
+    /**
+     * Feedback this user has sent us about the app.
+     */
+    public function appFeedback(): HasMany
+    {
+        return $this->hasMany(AppFeedback::class);
+    }
+
+    /**
+     * Short-lived "forgot password" codes sent over email or SMS.
+     */
+    public function passwordResetCodes(): HasMany
+    {
+        return $this->hasMany(PasswordResetCode::class);
     }
 
     /**
@@ -112,6 +137,24 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->subscription_expires_at !== null
             && $this->subscription_expires_at->isFuture();
+    }
+
+    /**
+     * True once the user's phone has been confirmed via SMS OTP.
+     */
+    public function hasVerifiedPhone(): bool
+    {
+        return $this->phone_verified_at !== null;
+    }
+
+    /**
+     * True once the user has confirmed their account via EITHER channel.
+     * `verification_method` only decides which flow they're routed through
+     * while unverified — it is not the source of truth for this check.
+     */
+    public function isVerified(): bool
+    {
+        return $this->hasVerifiedEmail() || $this->hasVerifiedPhone();
     }
 
     /**

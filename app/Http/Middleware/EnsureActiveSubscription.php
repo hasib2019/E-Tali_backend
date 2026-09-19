@@ -32,10 +32,14 @@ class EnsureActiveSubscription
             );
         }
 
-        if (! $user->hasVerifiedEmail()) {
+        if (! $user->isVerified()) {
+            $viaPhone = $user->verification_method === 'phone';
+
             return $this->lock(
-                'EMAIL_UNVERIFIED',
-                'Please verify your email address to continue.',
+                $viaPhone ? 'PHONE_UNVERIFIED' : 'EMAIL_UNVERIFIED',
+                $viaPhone
+                    ? 'Please verify your phone number to continue.'
+                    : 'Please verify your email address to continue.',
             );
         }
 

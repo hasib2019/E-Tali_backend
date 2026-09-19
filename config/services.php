@@ -45,6 +45,19 @@ return [
         ],
     ],
 
+    'qolek' => [
+        // SMS OTP gateway (https://sms.qolek.com). Sandbox vs Live is toggled
+        // on Qolek's dashboard for this key, not here.
+        'base_url' => env('QOLEK_BASE_URL', 'https://sms.qolek.com/api/v1'),
+        'api_key' => env('QOLEK_API_KEY'),
+        'api_secret' => env('QOLEK_API_SECRET'),
+        'sender_id' => env('QOLEK_SENDER_ID'),
+        // Shared secret in the callback URL path (…/webhooks/sms/qolek/{this}).
+        // Paste the full URL, with this value in place of {token}, into
+        // Qolek's "Delivery Status Callback URL" field.
+        'webhook_secret' => env('QOLEK_WEBHOOK_SECRET'),
+    ],
+
     'google' => [
         // OAuth client IDs — a Google id_token's `aud` must match one of these.
         'web_client_id' => env('GOOGLE_WEB_CLIENT_ID'),
