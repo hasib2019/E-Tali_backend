@@ -65,7 +65,7 @@
                 @foreach ([
                     ['Connections in use', $db['threads_connected'].' / '.$db['max_connections'], $dbTone,
                         $db['usage_percent'] !== null ? $db['usage_percent'].'% of the cap' : null],
-                    ['Running queries', $db['threads_running'], 'gray', 'Actively executing now'],
+                    ['Threads running', $db['threads_running'], 'gray', 'Server threads not sleeping'],
                     ['Peak connections', $db['max_used_connections'], $tone($db['peak_percent']),
                         $db['peak_percent'] !== null ? $db['peak_percent'].'% of the cap, since restart' : null],
                     ['Queries / second', $db['queries_per_second'] ?? '—', 'gray',

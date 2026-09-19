@@ -227,12 +227,21 @@ class ServerHealthService
 
     private function mysqlVariable(string $name): ?string
     {
+        // MySQL/MariaDB reject a placeholder here ("SHOW VARIABLES LIKE ?" is a
+        // syntax error), so the name is inlined — constrained to word characters
+        // because it is interpolated rather than bound.
+        if (! preg_match('/^\w+$/', $name)) {
+            return null;
+        }
+
         try {
-            $row = DB::select('SHOW VARIABLES LIKE ?', [$name]);
+            $row = DB::select("SHOW VARIABLES LIKE '{$name}'");
             $row = $row ? (array) $row[0] : [];
 
             return $row['Value'] ?? null;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            report($e);
+
             return null;
         }
     }

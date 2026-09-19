@@ -27,7 +27,7 @@ class AuthController extends ApiController
         // and collide at insert time instead of failing validation cleanly.
         $rawPhone = $request->input('phone');
         if (is_string($rawPhone) && $rawPhone !== '') {
-            $request->merge(['phone' => $this->normalizeBdPhone($rawPhone)]);
+            $request->merge(['phone' => User::normalizeBdPhone($rawPhone)]);
         }
 
         $data = $request->validate([
@@ -67,36 +67,20 @@ class AuthController extends ApiController
             : 'Registration successful. Please verify your email.', 201);
     }
 
-    /**
-     * Normalize a Bangladeshi mobile number to the gateway's expected shape
-     * (880XXXXXXXXXX, no leading +/0) so storage + SMS sending always agree.
-     */
-    private function normalizeBdPhone(string $phone): string
-    {
-        $digits = preg_replace('/\D+/', '', $phone) ?? '';
-
-        if (str_starts_with($digits, '880')) {
-            return $digits;
-        }
-
-        if (str_starts_with($digits, '0')) {
-            return '880'.substr($digits, 1);
-        }
-
-        return '880'.$digits;
-    }
 
     /**
      * Log in with email + password and return an API token.
      */
     public function login(Request $request): JsonResponse
     {
+        // The `email` field carries either an email address or a phone number —
+        // the key keeps its name so app builds already in the wild keep working.
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $data['email'])->first();
+        $user = User::findByIdentifier($data['email']);
 
         if (! $user || ! $user->password || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -129,7 +113,7 @@ class AuthController extends ApiController
 
         $rawPhone = $request->input('phone');
         if (is_string($rawPhone) && $rawPhone !== '') {
-            $request->merge(['phone' => $this->normalizeBdPhone($rawPhone)]);
+            $request->merge(['phone' => User::normalizeBdPhone($rawPhone)]);
         }
 
         $data = $request->validate([

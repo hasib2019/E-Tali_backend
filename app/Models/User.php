@@ -130,6 +130,44 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Normalize a Bangladeshi mobile number to the shape we store and send to
+     * the SMS gateway (880XXXXXXXXXX — no leading + or 0).
+     */
+    public static function normalizeBdPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        if ($digits === '' || str_starts_with($digits, '880')) {
+            return $digits;
+        }
+
+        return str_starts_with($digits, '0')
+            ? '880'.substr($digits, 1)
+            : '880'.$digits;
+    }
+
+    /**
+     * Find an account from whatever the user typed to identify themselves —
+     * their email, or their phone in any shape they remember it (01…, +880…,
+     * 880…). Used by login and by "forgot password".
+     */
+    public static function findByIdentifier(string $identifier): ?self
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        if (str_contains($identifier, '@')) {
+            return static::where('email', $identifier)->first();
+        }
+
+        $phone = static::normalizeBdPhone($identifier);
+
+        return $phone === '' ? null : static::where('phone', $phone)->first();
+    }
+
+    /**
      * True when the user has a paid subscription that has not yet expired.
      * The expiry date is authoritative (status string may be stale).
      */

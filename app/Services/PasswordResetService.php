@@ -22,23 +22,7 @@ class PasswordResetService
      */
     public function findUser(string $identifier): ?User
     {
-        $identifier = trim($identifier);
-
-        if (str_contains($identifier, '@')) {
-            return User::where('email', $identifier)->first();
-        }
-
-        $digits = preg_replace('/\D+/', '', $identifier) ?? '';
-        if ($digits === '') {
-            return null;
-        }
-        if (str_starts_with($digits, '0')) {
-            $digits = '880'.substr($digits, 1);
-        } elseif (! str_starts_with($digits, '880')) {
-            $digits = '880'.$digits;
-        }
-
-        return User::where('phone', $digits)->first();
+        return User::findByIdentifier($identifier);
     }
 
     /**
