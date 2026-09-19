@@ -4,7 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\CategoryStatsWidget;
 use App\Filament\Widgets\EngagementStatsWidget;
-use App\Filament\Widgets\TopPagesWidget;
+use App\Filament\Widgets\RecentlyActiveUsersWidget;
+use App\Filament\Widgets\TopScreensWidget;
 use App\Filament\Widgets\UserRegistrationsChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -49,7 +50,8 @@ class AdminPanelProvider extends PanelProvider
                 EngagementStatsWidget::class,
                 UserRegistrationsChart::class,
                 CategoryStatsWidget::class,
-                TopPagesWidget::class,
+                TopScreensWidget::class,
+                RecentlyActiveUsersWidget::class,
                 FilamentInfoWidget::class,
             ])
             ->middleware([
