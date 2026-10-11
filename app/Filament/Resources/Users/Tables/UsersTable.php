@@ -32,6 +32,12 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable(),
+                // Stored normalized as 8801XXXXXXXXX; substring search still matches 01XXXXXXXXX.
+                TextColumn::make('phone')
+                    ->label('Phone')
+                    ->searchable()
+                    ->copyable()
+                    ->placeholder('—'),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),

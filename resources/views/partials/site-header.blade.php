@@ -33,6 +33,10 @@
                 <x-landing-icon name="globe" size="18"/>
                 {{ $locale === 'bn' ? 'EN' : 'বাংলা' }}
             </a>
+            <a class="button button-small button-secondary desktop-cta" href="{{ route('web-app') }}">
+                <x-landing-icon name="laptop" size="18"/>
+                {{ __('landing.nav.web_app') }}
+            </a>
             <a class="button button-small button-primary desktop-cta" href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener">
                 {{ __('landing.nav.download') }}
                 <x-landing-icon name="download" size="18"/>
@@ -59,6 +63,7 @@
             @if ($sectionVisibility['faq'])
             <a href="{{ $homeUrl }}#faq">{{ __('landing.nav.faq') }}</a>
             @endif
+            <a class="button button-secondary" href="{{ route('web-app') }}">{{ __('landing.nav.web_app') }}</a>
             <a class="button button-primary" href="{{ $siteSettings['android_url'] }}" target="_blank" rel="noopener">{{ __('landing.nav.download') }}</a>
         </nav>
     </div>

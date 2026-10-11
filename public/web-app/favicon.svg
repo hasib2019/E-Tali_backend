@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="E-Tali-Khata">
+  <defs>
+    <linearGradient id="tk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22B8AE"/>
+      <stop offset="1" stop-color="#0E5C8A"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#tk)"/>
+  <!-- open book -->
+  <g fill="#ffffff">
+    <path d="M32 45.5 L32 21.5 C 25 17, 15.5 17, 9.5 20.5 L 9.5 42.5 C 15.5 39, 25 39, 32 43.5 Z"/>
+    <path d="M32 45.5 L32 21.5 C 39 17, 48.5 17, 54.5 20.5 L 54.5 42.5 C 48.5 39, 39 39, 32 43.5 Z"/>
+  </g>
+  <!-- spine -->
+  <rect x="30.8" y="21" width="2.4" height="24.5" rx="1.2" fill="#0E5C8A" opacity="0.22"/>
+  <!-- Taka mark on the left page -->
+  <text x="19.5" y="37.5" font-family="Georgia, 'Times New Roman', serif" font-size="16" font-weight="700" fill="#0E5C8A" text-anchor="middle">&#2547;</text>
+  <!-- ledger lines on the right page -->
+  <g stroke="#0E5C8A" stroke-width="1.7" stroke-linecap="round" opacity="0.5">
+    <line x1="39.5" y1="27" x2="50" y2="26"/>
+    <line x1="39.5" y1="31" x2="50" y2="30"/>
+    <line x1="39.5" y1="35" x2="48.5" y2="34.2"/>
+  </g>
+</svg>

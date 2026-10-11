@@ -72,6 +72,11 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::put('/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Self-service Free Trial renewal — reachable while expired, since an
+    // expired trial user is exactly who taps "Renew".
+    Route::post('/subscription/renew-trial', [SubscriptionController::class, 'renewTrial'])
+        ->middleware('throttle:6,1');
+
     // Email verification (reachable while unverified so the app can drive the flow).
     Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1');
