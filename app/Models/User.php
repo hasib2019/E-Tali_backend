@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -19,7 +20,7 @@ use Laravel\Sanctum\HasApiTokens;
     'is_active', 'provider', 'google_id', 'avatar',
     'package_id', 'subscription_status', 'subscribed_at', 'subscription_expires_at', 'is_paid',
     'backup_frequency', 'last_backup_at', 'last_active_at', 'last_screen', 'migrated_at',
-    'web_access',
+    'web_access', 'sms_balance', 'sms_sent_total',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -32,6 +33,18 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @return array<string, string>
      */
+    /**
+     * New accounts start with the owner-configured free SMS credits.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if ($user->sms_balance === null && Schema::hasTable('sms_settings')) {
+                $user->sms_balance = SmsSetting::current()->free_sms_per_user;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -46,6 +59,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_backup_at' => 'datetime',
             'last_active_at' => 'datetime',
             'migrated_at' => 'datetime',
+            'sms_balance' => 'integer',
+            'sms_sent_total' => 'integer',
         ];
     }
 
@@ -119,6 +134,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function driveCredential(): HasOne
     {
         return $this->hasOne(GoogleDriveCredential::class);
+    }
+
+    /**
+     * SMS credit grants and customer SMS sends, the audit trail for both.
+     */
+    public function smsLogs(): HasMany
+    {
+        return $this->hasMany(SmsLog::class);
     }
 
     /**

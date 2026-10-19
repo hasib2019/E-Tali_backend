@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
+use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TransactionController;
@@ -111,6 +112,13 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     // plan lapsed is exactly the person we want to hear from.
     Route::post('/feedback', [AppFeedbackController::class, 'store'])
         ->middleware('throttle:10,1');
+
+    // Customer SMS (tagada / transaction alerts), paid for with credits the
+    // owner grants from the admin panel. Credits gate it, not the plan, so it
+    // sits outside the subscription lock like feedback.
+    Route::get('/sms/summary', [SmsController::class, 'summary']);
+    Route::post('/sms/send', [SmsController::class, 'send'])
+        ->middleware('throttle:20,1');
 
     // "Support us" — honor-based bKash donation, open to every user (free or
     // paid, even locked) regardless of subscription status.
