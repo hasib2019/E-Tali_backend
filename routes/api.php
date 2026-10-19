@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
+use App\Http\Controllers\Api\SharedStatementController;
 use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
@@ -118,6 +119,10 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     // sits outside the subscription lock like feedback.
     Route::get('/sms/summary', [SmsController::class, 'summary']);
     Route::post('/sms/send', [SmsController::class, 'send'])
+        ->middleware('throttle:20,1');
+
+    // Share a party statement as a read-only public link (/s/{token}).
+    Route::post('/statements/share', [SharedStatementController::class, 'store'])
         ->middleware('throttle:20,1');
 
     // "Support us" — honor-based bKash donation, open to every user (free or
