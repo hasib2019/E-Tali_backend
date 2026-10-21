@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\PhoneOtp;
+use App\Models\SmsLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -37,8 +38,14 @@ class SmsWebhookController extends ApiController
                     'delivery_status' => $status,
                     'delivered_at' => $delivered ? now() : $otp->delivered_at,
                 ]);
+            } elseif ($log = SmsLog::where('message_id', $messageId)->first()) {
+                $delivered = in_array(strtolower((string) $status), ['delivered', 'success'], true);
+                $log->update([
+                    'delivery_status' => $status,
+                    'delivered_at' => $delivered ? now() : $log->delivered_at,
+                ]);
             } else {
-                Log::warning('Qolek delivery callback: no matching OTP for message_id.', ['message_id' => $messageId]);
+                Log::warning('Qolek delivery callback: no matching OTP or SMS log for message_id.', ['message_id' => $messageId]);
             }
         }
 

@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Check every hour for users whose Drive backup schedule is due.
 // (Requires the system cron: * * * * * php artisan schedule:run)
 Schedule::command('backups:run')->hourly();
+
+// Delete expired shared statement links (and anything else Prunable).
+Schedule::command('model:prune')->daily();

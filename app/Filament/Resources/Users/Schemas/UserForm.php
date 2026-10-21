@@ -71,6 +71,16 @@ class UserForm
                 Toggle::make('is_paid')
                     ->label('Paid'),
 
+                // --- SMS (use the "Give SMS" action to change; this is read-only) ---
+                TextInput::make('sms_balance')
+                    ->label('SMS credits left')
+                    ->disabled()
+                    ->dehydrated(false),
+                TextInput::make('sms_sent_total')
+                    ->label('SMS parts sent (all time)')
+                    ->disabled()
+                    ->dehydrated(false),
+
                 // --- Backup (read-only; the user controls this from the app) ---
                 TextInput::make('backup_frequency')
                     ->disabled()

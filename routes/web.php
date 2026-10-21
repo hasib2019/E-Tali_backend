@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\LegalPageController;
+use App\Http\Controllers\SharedStatementPageController;
 use App\Http\Controllers\WebAppController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,3 +21,9 @@ Route::get('/web-app/{path?}', WebAppController::class)->where('path', '.*')->na
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
     ->name('verification.verify');
+
+// Read-only statement a shop owner shared with their customer.
+Route::get('/s/{token}', SharedStatementPageController::class)
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:60,1')
+    ->name('statement.show');

@@ -35,6 +35,10 @@ class PackagesTable
                 TextColumn::make('max_parties')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('sms_quota')
+                    ->label('SMS')
+                    ->numeric()
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')
