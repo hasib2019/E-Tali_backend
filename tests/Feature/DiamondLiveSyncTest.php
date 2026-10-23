@@ -395,6 +395,10 @@ class DiamondLiveSyncTest extends TestCase
                 'id' => 1, 'sync_id' => 'dc-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
                 'close_date' => '2026-10-20', 'expected_cash' => 1000, 'counted_cash' => 990, 'difference' => -10,
             ] + $ts],
+            ['table' => 'head_entries', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'he-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'type' => 'out', 'amount' => 8000, 'head' => 'বাসা ভাড়া', 'entry_date' => '2026-10-20',
+            ] + $ts],
         ];
 
         $response = $this->postJson('/api/sync/push', ['changes' => array_reverse($changes)])->assertOk();
@@ -414,6 +418,7 @@ class DiamondLiveSyncTest extends TestCase
 
         $snapshot = app(\App\Services\LedgerSyncService::class)->snapshot($user);
         $this->assertCount(1, $snapshot['tables']['day_closings']);
+        $this->assertSame('বাসা ভাড়া', $snapshot['tables']['head_entries'][0]['head']);
         $this->assertSame('acc-bkash', $snapshot['tables']['accounts'][0]['sync_id']);
     }
 }

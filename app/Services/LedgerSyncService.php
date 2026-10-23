@@ -47,6 +47,7 @@ class LedgerSyncService
         'employees',
         'employee_entries',
         'day_closings',
+        'head_entries',
     ];
 
     /** Columns shared with the device schema. */
@@ -82,6 +83,7 @@ class LedgerSyncService
         'employees' => ['id', 'sync_id', 'business_id', 'name', 'phone', 'designation', 'monthly_salary', 'joined_at', 'is_active', 'created_at', 'updated_at'],
         'employee_entries' => ['id', 'sync_id', 'business_id', 'employee_id', 'cashbook_entry_id', 'kind', 'amount', 'period', 'entry_date', 'note', 'created_at', 'updated_at'],
         'day_closings' => ['id', 'sync_id', 'business_id', 'close_date', 'expected_cash', 'counted_cash', 'difference', 'cash_in', 'cash_out', 'sales', 'note', 'created_at', 'updated_at'],
+        'head_entries' => ['id', 'sync_id', 'business_id', 'type', 'amount', 'head', 'note', 'entry_date', 'created_at', 'updated_at'],
     ];
 
     /**
@@ -115,6 +117,7 @@ class LedgerSyncService
             'cashbook_entry_id' => ['cashbook_entries', true],
         ],
         'day_closings' => ['business_id' => ['businesses', false]],
+        'head_entries' => ['business_id' => ['businesses', false]],
         'landlord_properties' => ['business_id' => ['businesses', false]],
         'landlord_units' => [
             'business_id' => ['businesses', false],
