@@ -56,6 +56,20 @@ class BusinessCardTest extends TestCase
         $this->assertSame(2, BusinessCard::count());
     }
 
+    public function test_new_layout_templates_are_accepted_and_coloured(): void
+    {
+        Storage::fake('public');
+        Sanctum::actingAs(User::factory()->create());
+
+        foreach (['rickshaw', 'nakshi', 'neon', 'monogram', 'sash', 'zen', 'ticket', 'khata'] as $key) {
+            $this->postJson('/api/business-cards', $this->payload(['template' => $key]))->assertSuccessful();
+            $this->assertSame($key, BusinessCard::first()->template);
+        }
+
+        // The public page wears the last template's palette (khata's red margin).
+        $this->get('/card/'.BusinessCard::first()->token)->assertOk()->assertSee('#D93A3A', false);
+    }
+
     public function test_public_page_and_contact_file(): void
     {
         Storage::fake('public');
