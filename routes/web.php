@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\EmailVerificationController;
+use App\Http\Controllers\BusinessCardPageController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\SharedStatementPageController;
@@ -27,3 +28,13 @@ Route::get('/s/{token}', SharedStatementPageController::class)
     ->where('token', '[A-Za-z0-9]{32}')
     ->middleware('throttle:60,1')
     ->name('statement.show');
+
+// Public business card a shop owner shared as a link, and its contact file.
+Route::get('/card/{token}', [BusinessCardPageController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:60,1')
+    ->name('business-card.show');
+Route::get('/card/{token}/contact.vcf', [BusinessCardPageController::class, 'vcard'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:60,1')
+    ->name('business-card.vcard');

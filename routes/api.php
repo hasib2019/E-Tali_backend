@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupVaultController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\BusinessCardController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\CashbookController;
 use App\Http\Controllers\Api\CashCategoryController;
@@ -123,6 +124,10 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
 
     // Share a party statement as a read-only public link (/s/{token}).
     Route::post('/statements/share', [SharedStatementController::class, 'store'])
+        ->middleware('throttle:20,1');
+
+    // Share the owner's business card as a public link (/card/{token}).
+    Route::post('/business-cards', [BusinessCardController::class, 'store'])
         ->middleware('throttle:20,1');
 
     // "Support us" — honor-based bKash donation, open to every user (free or
