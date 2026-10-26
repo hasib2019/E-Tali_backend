@@ -13,6 +13,7 @@ return [
         'pricing' => 'Pricing',
         'faq' => 'FAQ',
         'download' => 'Get the app',
+        'web_app' => 'Use on web',
         'menu' => 'Open menu',
     ],
     'hero' => [

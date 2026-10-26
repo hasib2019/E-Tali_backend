@@ -214,6 +214,7 @@ class AuthController extends ApiController
             'phone_verified' => $user->hasVerifiedPhone(),
             'is_active' => (bool) $user->is_active,
             'web_access' => (bool) $user->web_access,
+            'sms_balance' => (int) $user->sms_balance,
             'package' => $user->package,
             'subscription_status' => $user->subscription_status,
             'subscription_expires_at' => $user->subscription_expires_at?->toIso8601String(),

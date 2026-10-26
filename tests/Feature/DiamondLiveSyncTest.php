@@ -347,4 +347,78 @@ class DiamondLiveSyncTest extends TestCase
             ->assertJsonPath('data.snapshot.counts.landlord_payment_allocations', 1)
             ->assertJsonPath('data.snapshot.counts.landlord_recoveries', 1);
     }
+
+    public function test_business_suite_tables_sync_with_their_relations(): void
+    {
+        $user = $this->diamondUser();
+        Sanctum::actingAs($user);
+        $now = now()->toIso8601String();
+        $ts = ['created_at' => $now, 'updated_at' => $now];
+
+        $changes = [
+            $this->businessChange('biz-suite'),
+            ['table' => 'parties', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'walkin', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'name' => 'নগদ বিক্রি', 'type' => 'customer', 'opening_balance' => 0, 'credit_limit' => null,
+                'due_date' => null, 'is_walk_in' => 1, 'batch_id' => null, 'batch_sync_id' => null,
+            ] + $ts],
+            ['table' => 'accounts', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'acc-bkash', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'name' => 'bKash', 'kind' => 'bkash', 'number' => '01711000000', 'opening_balance' => 500.5, 'sort' => 0, 'is_archived' => 0,
+            ] + $ts],
+            ['table' => 'vouchers', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'v-ret', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'party_id' => 1, 'party_sync_id' => 'walkin', 'type' => 'sale_return', 'invoice_no' => 'RET-0001',
+                'voucher_date' => '2026-10-20', 'total_amount' => 90, 'discount' => 10, 'vat' => 0,
+                'paid_amount' => 90, 'due_amount' => 0, 'customer_name' => 'Karim',
+            ] + $ts],
+            ['table' => 'cashbook_entries', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'cb-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'account_id' => 1, 'account_sync_id' => 'acc-bkash', 'voucher_id' => 1, 'voucher_sync_id' => 'v-ret',
+                'type' => 'cash_out', 'amount' => 90, 'entry_date' => '2026-10-20',
+            ] + $ts],
+            ['table' => 'account_transfers', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'tr-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'from_account_id' => 1, 'from_account_sync_id' => 'acc-bkash', 'to_account_id' => null, 'to_account_sync_id' => null,
+                'amount' => 100, 'fee' => 1.85, 'transfer_date' => '2026-10-20',
+            ] + $ts],
+            ['table' => 'employees', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'emp-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'name' => 'Rahim', 'monthly_salary' => 12000, 'is_active' => 1,
+            ] + $ts],
+            ['table' => 'employee_entries', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'ee-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'employee_id' => 1, 'employee_sync_id' => 'emp-1', 'cashbook_entry_id' => 1, 'cashbook_entry_sync_id' => 'cb-1',
+                'kind' => 'salary', 'amount' => 12000, 'period' => '2026-10', 'entry_date' => '2026-10-20',
+            ] + $ts],
+            ['table' => 'day_closings', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'dc-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'close_date' => '2026-10-20', 'expected_cash' => 1000, 'counted_cash' => 990, 'difference' => -10,
+            ] + $ts],
+            ['table' => 'head_entries', 'op' => 'upsert', 'row' => [
+                'id' => 1, 'sync_id' => 'he-1', 'business_id' => 1, 'business_sync_id' => 'biz-suite',
+                'type' => 'out', 'amount' => 8000, 'head' => 'বাসা ভাড়া', 'entry_date' => '2026-10-20',
+            ] + $ts],
+        ];
+
+        $response = $this->postJson('/api/sync/push', ['changes' => array_reverse($changes)])->assertOk();
+        foreach ($response->json('data.results') as $result) {
+            $this->assertTrue($result['accepted'], json_encode($result));
+        }
+
+        $account = DB::table('accounts')->where('sync_id', 'acc-bkash')->first();
+        $voucher = DB::table('vouchers')->where('sync_id', 'v-ret')->first();
+        $this->assertSame('sale_return', $voucher->type);
+        $cash = DB::table('cashbook_entries')->where('sync_id', 'cb-1')->first();
+        $this->assertSame($account->id, $cash->account_id);
+        $this->assertSame($voucher->id, $cash->voucher_id);
+        $this->assertNull(DB::table('account_transfers')->where('sync_id', 'tr-1')->value('to_account_id'));
+        $this->assertSame($cash->id, DB::table('employee_entries')->where('sync_id', 'ee-1')->value('cashbook_entry_id'));
+        $this->assertTrue((bool) DB::table('parties')->where('sync_id', 'walkin')->value('is_walk_in'));
+
+        $snapshot = app(\App\Services\LedgerSyncService::class)->snapshot($user);
+        $this->assertCount(1, $snapshot['tables']['day_closings']);
+        $this->assertSame('বাসা ভাড়া', $snapshot['tables']['head_entries'][0]['head']);
+        $this->assertSame('acc-bkash', $snapshot['tables']['accounts'][0]['sync_id']);
+    }
 }

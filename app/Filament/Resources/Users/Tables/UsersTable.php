@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Actions\GiveSmsAction;
 use App\Models\Package;
 use App\Models\Subscription;
 use App\Models\User;
@@ -32,6 +33,12 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable(),
+                // Stored normalized as 8801XXXXXXXXX; substring search still matches 01XXXXXXXXX.
+                TextColumn::make('phone')
+                    ->label('Phone')
+                    ->searchable()
+                    ->copyable()
+                    ->placeholder('—'),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
@@ -63,6 +70,11 @@ class UsersTable
                     ->dateTime('d M Y')
                     ->placeholder('—')
                     ->sortable(),
+                TextColumn::make('sms_balance')
+                    ->label('SMS left')
+                    ->badge()
+                    ->color(fn (int $state): string => $state > 0 ? 'info' : 'gray')
+                    ->sortable(),
                 IconColumn::make('is_paid')
                     ->label('Paid')
                     ->boolean(),
@@ -88,10 +100,13 @@ class UsersTable
             ])
             ->recordActions([
                 self::assignPackageAction(),
+                GiveSmsAction::forRecord(),
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([]),
+                BulkActionGroup::make([
+                    GiveSmsAction::forSelection(),
+                ]),
             ]);
     }
 

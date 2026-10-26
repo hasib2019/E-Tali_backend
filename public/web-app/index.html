@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>E-Tali-Khata — Digital Ledger App</title>
+    <meta name="description" content="E-Tali-Khata — a digital ledger (khata) app for small businesses: customers, suppliers, cashbook, bills and secure Google Drive backup."/>
+    <meta name="theme-color" content="#0E5C8A"/>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="icon" type="image/svg+xml" href="/web-app/favicon.svg"/>  <style id="preload-splash-style">
+#preload-splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f3f8f8;color:#0E5C8A;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;transition:opacity .3s ease}
+#preload-splash .pl-badge{width:78px;height:78px;border-radius:20px;background:linear-gradient(135deg,#22B8AE,#0E5C8A);display:flex;align-items:center;justify-content:center;color:#fff;font:800 40px Georgia,serif;box-shadow:0 12px 34px rgba(14,92,138,.28);animation:pl-pulse 1.6s ease-in-out infinite}
+#preload-splash .pl-title{font-size:23px;font-weight:800;letter-spacing:-.01em}
+#preload-splash .pl-sub{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#6b8891}
+#preload-splash .pl-ring{margin-top:6px;width:26px;height:26px;border-radius:50%;border:3px solid rgba(14,92,138,.16);border-top-color:#22B8AE;animation:pl-spin .8s linear infinite}
+@keyframes pl-spin{to{transform:rotate(360deg)}}
+@keyframes pl-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@media (prefers-color-scheme:dark){#preload-splash{background:#0b1618;color:#cfeeee}#preload-splash .pl-sub{color:#6f8b93}}
+@media (prefers-reduced-motion:reduce){#preload-splash .pl-badge,#preload-splash .pl-ring{animation:none}}
+</style>
+</head>
+
+  <body>
+    <div id="preload-splash" aria-hidden="true">
+      <div class="pl-badge">&#2547;</div>
+      <div class="pl-title">E-Tali-Khata</div>
+      <div class="pl-sub">Digital Ledger App</div>
+      <div class="pl-ring"></div>
+    </div>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  <script src="/web-app/_expo/static/js/web/entry-ba3f21a080a3c7f056bf177d2c909d68.js" defer></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'price', 'duration_days', 'description', 'show_icon', 'max_businesses', 'max_parties', 'allowed_categories', 'features', 'is_active'])]
+#[Fillable(['name', 'price', 'duration_days', 'description', 'show_icon', 'max_businesses', 'max_parties', 'sms_quota', 'allowed_categories', 'features', 'is_active'])]
 class Package extends Model
 {
     protected function casts(): array
@@ -17,6 +17,7 @@ class Package extends Model
             'is_active' => 'boolean',
             'allowed_categories' => 'array',
             'features' => 'array',
+            'sms_quota' => 'integer',
         ];
     }
 

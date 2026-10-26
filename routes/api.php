@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupVaultController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\BusinessCardController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\CashbookController;
 use App\Http\Controllers\Api\CashCategoryController;
@@ -29,6 +30,8 @@ use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryController;
 use App\Http\Controllers\Api\SavingsGoalController;
+use App\Http\Controllers\Api\SharedStatementController;
+use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TransactionController;
@@ -72,6 +75,11 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     Route::put('/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Self-service Free Trial renewal — reachable while expired, since an
+    // expired trial user is exactly who taps "Renew".
+    Route::post('/subscription/renew-trial', [SubscriptionController::class, 'renewTrial'])
+        ->middleware('throttle:6,1');
+
     // Email verification (reachable while unverified so the app can drive the flow).
     Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1');
@@ -106,6 +114,21 @@ Route::middleware(['auth:sanctum', TouchLastActive::class])->group(function () {
     // plan lapsed is exactly the person we want to hear from.
     Route::post('/feedback', [AppFeedbackController::class, 'store'])
         ->middleware('throttle:10,1');
+
+    // Customer SMS (tagada / transaction alerts), paid for with credits the
+    // owner grants from the admin panel. Credits gate it, not the plan, so it
+    // sits outside the subscription lock like feedback.
+    Route::get('/sms/summary', [SmsController::class, 'summary']);
+    Route::post('/sms/send', [SmsController::class, 'send'])
+        ->middleware('throttle:20,1');
+
+    // Share a party statement as a read-only public link (/s/{token}).
+    Route::post('/statements/share', [SharedStatementController::class, 'store'])
+        ->middleware('throttle:20,1');
+
+    // Share the owner's business card as a public link (/card/{token}).
+    Route::post('/business-cards', [BusinessCardController::class, 'store'])
+        ->middleware('throttle:20,1');
 
     // "Support us" — honor-based bKash donation, open to every user (free or
     // paid, even locked) regardless of subscription status.

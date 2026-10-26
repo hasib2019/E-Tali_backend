@@ -53,6 +53,12 @@ class PackageForm
                     ->label('Max parties per business (blank = unlimited)')
                     ->numeric()
                     ->default(null),
+                TextInput::make('sms_quota')
+                    ->label('SMS quota (credits added on every assign / renew)')
+                    ->helperText('0 = this plan includes no SMS. Free credits for new sign-ups are set on the SMS Settings page.')
+                    ->integer()
+                    ->minValue(0)
+                    ->default(0),
 
                 CheckboxList::make('allowed_categories')
                     ->label('Allowed khata categories (none selected = ALL allowed)')
